@@ -383,7 +383,11 @@ $c->{datacite_mapping_funders} = sub {
             $fundingReferences->appendChild(my $fundingReference = $xml->create_element("fundingReference"));
             $fundingReference->appendChild($xml->create_data_element("funderName", $project->{funder_name}));
             $fundingReference->appendChild($xml->create_data_element("awardTitle", $project->{project}));
+<<<<<<< HEAD
+            $fundingReference->appendChild($xml->create_data_element("funderIdentifier", $project->{funder_id}, funderIdentifierType=>"Crossref Funder ID"));
+=======
             $fundingReference->appendChild($xml->create_data_element("funderIdentifier", $project->{funder_id}));
+>>>>>>> 09385b55a6a644d84bccae3a6d9ced91e452b26c
         }
     } 
 
