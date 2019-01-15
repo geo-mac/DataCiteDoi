@@ -93,7 +93,7 @@
       <id>repositories@ulcc.ac.uk</id>
     </item>
   </creators>
-  <datestamp>2019-01-15 15:48:19</datestamp>
+  <datestamp>2019-01-15 15:55:38</datestamp>
   <title>DataCiteDoi - DataCite DOIs for EPrints</title>
   <description>Integrate minting and registering DataCite DOIs in to EPrints</description>
   <home_page>https://github.com/eprintsug/DataCiteDoi</home_page>
