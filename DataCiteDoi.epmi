@@ -1,26 +1,10 @@
 <?xml version='1.0' encoding='utf-8'?>
-<epm xmlns='http://eprints.org/ep2/data/2.0' id='http://localhost:8080/id/epm/DataCiteDoi'>
+<epm xmlns='http://eprints.org/ep2/data/2.0' id='http://192.168.23.142/id/epm/DataCiteDoi'>
   <epmid>DataCiteDoi</epmid>
   <uri>http://localhost:8080/id/epm/DataCiteDoi</uri>
   <documents>
     <document>
       <files>
-        <file>
-          <datasetid>document</datasetid>
-          <filename>epm/DataCiteDoi/cfg/cfg.d/z_datacitedoi.pl</filename>
-          <mime_type>text/plain</mime_type>
-          <hash>98b5a0b2203a9b6a180ae1b996823d20</hash>
-          <hash_type>MD5</hash_type>
-          <filesize>6522</filesize>
-        </file>
-        <file>
-          <datasetid>document</datasetid>
-          <filename>cfg.d/z_datacite_mapping.pl</filename>
-          <mime_type>text/plain</mime_type>
-          <hash>5139bbb0b2bc0fdd65542cd0bd25f076</hash>
-          <hash_type>MD5</hash_type>
-          <filesize>20537</filesize>
-        </file>
         <file>
           <datasetid>document</datasetid>
           <filename>lang/en/phrases/coinDOI.xml</filename>
@@ -31,8 +15,16 @@
         </file>
         <file>
           <datasetid>document</datasetid>
+          <filename>static/images/epm/datacitedoi.png</filename>
+          <mime_type>image/png</mime_type>
+          <hash>5c277fb358fe95e059b0f2aed2b49ce8</hash>
+          <hash_type>MD5</hash_type>
+          <filesize>21105</filesize>
+        </file>
+        <file>
+          <datasetid>document</datasetid>
           <filename>plugins/EPrints/Plugin/Event/DataCiteEvent.pm</filename>
-          <mime_type>text/plain</mime_type>
+          <mime_type>text/x-java</mime_type>
           <hash>6a29de65f6268314881d1197cb70b74e</hash>
           <hash_type>MD5</hash_type>
           <filesize>7606</filesize>
@@ -55,16 +47,24 @@
         </file>
         <file>
           <datasetid>document</datasetid>
-          <filename>static/images/epm/datacitedoi.png</filename>
-          <mime_type>image/png</mime_type>
-          <hash>5c277fb358fe95e059b0f2aed2b49ce8</hash>
+          <filename>cfg.d/z_datacite_mapping.pl</filename>
+          <mime_type>text/plain</mime_type>
+          <hash>afb788889b4b566e5b3e9244eff029d3</hash>
           <hash_type>MD5</hash_type>
-          <filesize>21105</filesize>
+          <filesize>20016</filesize>
+        </file>
+        <file>
+          <datasetid>document</datasetid>
+          <filename>epm/DataCiteDoi/cfg/cfg.d/z_datacitedoi.pl</filename>
+          <mime_type>text/plain</mime_type>
+          <hash>98b5a0b2203a9b6a180ae1b996823d20</hash>
+          <hash_type>MD5</hash_type>
+          <filesize>6522</filesize>
         </file>
       </files>
-      <mime_type>image/png</mime_type>
-      <format>image</format>
-      <main>static/images/epm/datacitedoi.png</main>
+      <mime_type>text/plain</mime_type>
+      <format>text</format>
+      <main>epm/DataCiteDoi/cfg/cfg.d/z_datacitedoi.pl</main>
       <content>install</content>
     </document>
     <document>
@@ -83,7 +83,7 @@
       <content>coverimage</content>
     </document>
   </documents>
-  <version>2.1.0</version>
+  <version>2.1.1</version>
   <creators>
     <item>
       <name>
@@ -93,7 +93,7 @@
       <id>repositories@ulcc.ac.uk</id>
     </item>
   </creators>
-  <datestamp>2019-01-15 15:55:38</datestamp>
+  <datestamp>2019-03-07 00:02:48</datestamp>
   <title>DataCiteDoi - DataCite DOIs for EPrints</title>
   <description>Integrate minting and registering DataCite DOIs in to EPrints</description>
   <home_page>https://github.com/eprintsug/DataCiteDoi</home_page>
