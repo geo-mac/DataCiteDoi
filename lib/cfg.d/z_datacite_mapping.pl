@@ -399,39 +399,31 @@ $c->{datacite_mapping_rights_from_docs} = sub {
     my $previous = {};
     my $attached_licence = undef;
 
+    my $seen = {};
+
     for my $doc ( $dataobj->get_all_documents() ) {
 
         my $license = $doc->get_value("license");
         my $content = $doc->get_value("content");
+	my ($license_uri,$license_phrase);
+    	# This doc is the license (for docs that have license == attached
+	if ((defined $content) && ($content eq "licence")){
+        	$license_uri = $doc->uri;
+		$license_phrase = $repo->phrase("licenses_typename_attached");
+	}else{
+	        $license_uri = $repo->phrase("licenses_uri_$license");
+        	$license_phrase = $repo->phrase("licenses_typename_$license");
+	}
+	#no dupes
+	next if $seen->{$license_uri};
 
-	    # This doc is the license (for docs that have license == attached
-	    if ((defined $content) && ($content eq "licence")){
-		    $attached_licence = $doc->url;
-		    next;
-	    }
-
-        if(EPrints::Utils::is_set($license) && $license ne "attached") {
-
-                    my $licenseuri = $repo->phrase("licenses_uri_$license");
-                    my $licensephrase = $repo->phrase("licenses_typename_$license");
-
-                    if($doc->exists_and_set("date_embargo")){
-                            $licensephrase .= $repo->phrase("embargoed_until", embargo_date=>$doc->value("date_embargo"));
-                    }
-
-                    $rightsList->appendChild($xml->create_data_element("rights", $licensephrase, rightsURI => $licenseuri));
-
+        if($doc->exists_and_set("date_embargo")){
+		$license_phrase .= $repo->phrase("embargoed_until", embargo_date=>$doc->value("date_embargo"));
         }
+	$seen->{$license_uri} = 1;
+        $rightsList->appendChild($xml->create_data_element("rights", $license_phrase, rightsURI => $license_uri));
     }
-    
-    #second pass now that we know what the attached license doc ur is
-    for my $doc ( $dataobj->get_all_documents() ) {
-        my $license = $doc->get_value("license");
-    	if(EPrints::Utils::is_set($license) && $license eq "attached") {
-        	$rightsList->appendChild($xml->create_data_element("rights", $repo->phrase("licenses_typename_attached"), rightsURI => $attached_licence));
 
-	    }
-    }
 
     return $rightsList;
 };
