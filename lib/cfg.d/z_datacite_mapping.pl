@@ -403,17 +403,19 @@ $c->{datacite_mapping_rights_from_docs} = sub {
 
     for my $doc ( $dataobj->get_all_documents() ) {
 
-        my $license = $doc->get_value("license");
-        my $content = $doc->get_value("content");
+    my $license = $doc->get_value("license");
+    my $content = $doc->get_value("content");
 	my ($license_uri,$license_phrase);
     	# This doc is the license (for docs that have license == attached
 	if ((defined $content) && ($content eq "licence")){
         	$license_uri = $doc->uri;
 		$license_phrase = $repo->phrase("licenses_typename_attached");
-	}else{
+	}elsif(defined $license){
 	        $license_uri = $repo->phrase("licenses_uri_$license");
         	$license_phrase = $repo->phrase("licenses_typename_$license");
-	}
+	}else{ #do not attempt to add rights tag if no license is set for a file
+        next;
+    }
 	#no dupes
 	next if $seen->{$license_uri};
 

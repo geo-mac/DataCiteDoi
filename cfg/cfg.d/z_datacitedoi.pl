@@ -68,7 +68,7 @@ $c->{datacitedoi}{typemap}{exhibition} = {v=>'Exhibition',a=>'InteractiveResourc
 $c->{datacitedoi}{typemap}{composition} = {v=>'Composition',a=>'Sound'};
 $c->{datacitedoi}{typemap}{performance} = {v=>'Performance',a=>'Event'};
 $c->{datacitedoi}{typemap}{image} = {v=>'Image',a=>'Image'};
-$c->{datacitedoi}{typemap}{video} = {v=>'Video',a=>'AudioVisual'};
+$c->{datacitedoi}{typemap}{video} = {v=>'Video',a=>'Audiovisual'};
 $c->{datacitedoi}{typemap}{audio} = {v=>'Audio',a=>'Sound'};
 $c->{datacitedoi}{typemap}{dataset} = {v=>'Dataset',a=>'Dataset'};
 $c->{datacitedoi}{typemap}{experiment} = {v=>'Experiment',a=>'Text'};
