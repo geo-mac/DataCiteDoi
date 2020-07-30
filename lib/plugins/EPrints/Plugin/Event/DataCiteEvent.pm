@@ -112,6 +112,7 @@ sub datacite_request {
 
   # pass request to the user agent and get a response back
   my $ua = LWP::UserAgent->new;
+  $ua->env_proxy;
   my $res = $ua->request($req);
 
   return ($res->content(),$res->code());
