@@ -25,7 +25,8 @@ $c->{datacitedoi}{eprintstatus} = {inbox=>0,buffer=>1,archive=>1,deletion=>0};
 # doi = {prefix}/{repoid}/{eprintid}
 $c->{datacitedoi}{prefix} = "10.5072";
 $c->{datacitedoi}{repoid} = $c->{host};
-$c->{datacitedoi}{apiurl} = "https://mds.test.datacite.org/";
+$c->{datacitedoi}{mdsurl} = "https://mds.test.datacite.org/";
+$c->{datacitedoi}{apiurl} = "https://api.test.datacite.org/";
 $c->{datacitedoi}{user} = "USER";
 $c->{datacitedoi}{pass} = "PASS";
 
@@ -141,3 +142,5 @@ if($c->{datacitedoi}{auto_coin}){
 if($c->{datacitedoi}{action_coin}){
  	$c->{plugins}{"Screen::EPrint::Staff::CoinDOI"}{params}{disable} = 0;
 }
+
+$c->{datacitedoi}{max_results} = 5;

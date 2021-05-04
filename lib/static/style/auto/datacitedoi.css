@@ -1,0 +1,43 @@
+.coin_doi
+{
+    padding: 0 0 20px 0;
+}
+
+li.coin_warning
+{
+    list-style-image: url(/style/images/warning-icon.png);
+}
+
+.new_doi form
+{
+    display: inline-block;
+    margin-left: 10px;
+}
+
+.datacite_result
+{
+    padding: 10px;
+    border: 1px solid #cdd2d5;
+    margin-bottom: 10px;
+}
+
+.datacite_result > div
+{
+    display: inline-block;
+}
+
+.datacite_result .datacite_info p
+{
+    margin-bottom: 0;
+}
+
+.datacite_result .datacite_info a, .datacite_result .datacite_info a:visited
+{
+    color: #3498db;
+    font-weight: bold;
+}
+
+.datacite_result .datacite_claim
+{
+    float: right;
+}

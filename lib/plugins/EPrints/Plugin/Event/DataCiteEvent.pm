@@ -46,7 +46,7 @@ sub datacite_doi
 		return $xml if($xml =~ /^\d+$/); #just a number? coin_doi has passed back an error code pass it on...
 
 		#print STDERR "XML: $xml\n";
-		my $url = $repository->get_conf( "datacitedoi", "apiurl");
+		my $url = $repository->get_conf( "datacitedoi", "mdsurl");
 		$url.="/" if($url !~ /\/$/); #attach slash if config has forgotten
 		my $user_name = $repository->get_conf( "datacitedoi", "user");
 		my $user_pw = $repository->get_conf( "datacitedoi", "pass");
