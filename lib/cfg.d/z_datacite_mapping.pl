@@ -13,7 +13,7 @@
 # - publicationYear
 # #################################
 
-# identifer this is the DOI and is automatically generated see EPrints::Plugin::Event::DataCiteEvent::coin_doi
+# identifer this is the DOI and is automatically generated see EPrints::DataCite::Utils::generate_doi
 
 ##################################################
 # resourceType this is derived from the eprint.type and the datacitedoi->{typemap} in cfg/cfg.d/z_datacite.pl

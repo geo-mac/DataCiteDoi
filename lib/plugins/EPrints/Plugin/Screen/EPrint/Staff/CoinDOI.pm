@@ -43,9 +43,18 @@ sub properties_from
 
     my $eprint = $self->{processor}->{eprint};
 
-    # datacite query
-    $self->{processor}->{datacite_response} = EPrints::DataCite::Utils::datacite_dois_query( $repo, "titles.title", $eprint->value( "title" ) );
+    # get the DOI this eprint wants to generate
+    my $eprint_doi = EPrints::DataCite::Utils::generate_doi( $repo, $eprint );
+    $self->{processor}->{eprint_doi} = $eprint_doi;
 
+    # Does the DOI that would be generated for this record already exist?
+    my $mds_doi = EPrints::DataCite::Utils::datacite_mds_doi( $repo, $eprint_doi );
+    $self->{processor}->{mds_doi} = $mds_doi if defined $mds_doi;
+
+    # DataCite title query to look for any DOIs that might already represent this record
+    $self->{processor}->{datacite_response} = EPrints::DataCite::Utils::datacite_api_query( $repo, "titles.title", $eprint->value( "title" ) );
+
+    # used when claiming an exisiting DOI from DataCite
     if( defined ( my $doi = $repo->param( "doi" ) ) )
     {
         $self->{processor}->{doi} = $doi;
@@ -86,6 +95,7 @@ sub render
     return $frag;
 }
 
+# all the options for adding a DOI to this record including listing problems with the record, indexer events trying to coin a DOI, and DOIs that already exist on DataCite
 sub render_coin_doi
 {
     my( $self ) = @_;
@@ -116,9 +126,30 @@ sub render_coin_doi
         }
         $div->appendChild( $coin_problems );
     }
-    elsif( 0 ) # we're already trying to coin a DOI for this record so show the indexer event
+    elsif( defined $self->{processor}->{mds_doi} ) # the doi we would make for this record already exists... something odd going on
     {
+        my $existing_doi = $repo->make_element( "div", class => "existing_doi" );
+        $div->appendChild( $existing_doi );
+        if( $self->{processor}->{mds_doi}."/" eq $eprint->get_url ) # the doi already exists and points to us... let's claim it 
+        # TODO: improve the above if statement with some sort of nice regex??  BUt hopefully this sort of occurence is quite rare anyway!
+        {
+            $existing_doi->appendChild( $self->html_phrase( "existing_doi:our_doi" ) );
 
+            # button to set the eprints doi field
+            my $claim_div = $existing_doi->appendChild( $repo->make_element( "div", class => "datacite_claim" ) );
+            my $form = $self->render_form;
+            $form->appendChild( $repo->render_hidden_field( "doi", $self->{processor}->{eprint_doi} ) );
+            $form->appendChild( $self->{session}->render_action_buttons(
+                claimdoi => $self->{session}->phrase( "datacite_dois:claim_doi" ),
+            ) );
+            $claim_div->appendChild( $form );
+        }
+        else # the doi we would coin already exists and points elsewhere... very odd so let's explain the situation
+        {
+            my $external_link = $repo->make_element( "a", href => $self->{processor}->{mds_doi}, target => "_blank" );
+            $external_link->appendChild( $repo->make_text( $self->{processor}->{mds_doi} ) );
+            $existing_doi->appendChild( $self->html_phrase( "existing_doi:external", url => $external_link ) );
+        }
     }
     else # we're all good to coin a doi
     {
@@ -139,6 +170,7 @@ sub render_coin_doi
     return $div;
 }
 
+# show the results of looking up this eprint's title on datacite
 sub render_datacite_dois
 {
     my( $self ) = @_;
@@ -171,6 +203,7 @@ sub render_datacite_dois
     return $div;
 }
 
+# show a datacite record, with a button allowing the user to select this doi for their eprint
 sub render_datacite_result
 {
     my( $self, $result ) = @_;

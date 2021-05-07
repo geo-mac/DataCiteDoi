@@ -5,6 +5,8 @@ EPrints::Plugin::Export::DataCiteXML
 package EPrints::Plugin::Export::DataCiteXML;
 use EPrints::Plugin::Export::Feed;
 
+use EPrints::DataCite::Utils;
+
 @ISA = ('EPrints::Plugin::Export::Feed');
 
 use strict;
@@ -50,9 +52,7 @@ sub output_dataobj
             # - no doi arg passed in via cmd_line
     # ie when someone exports DataCiteXML from the Action tab
     if(!defined $thisdoi){
-            #nick the coining sub from event plugin
-            my $event = $repo->plugin("Event::DataCiteEvent");
-            $thisdoi = $event->coin_doi($repo, $dataobj);
+            $thisdoi = EPrints::DataCite::Utils::generate_doi( $repo, $dataobj );
             #coin_doi may return an event error code if no prefix present assume this is the case
             my $prefix = $repo->get_conf( "datacitedoi", "prefix");
             return $thisdoi if($thisdoi !~ /^$prefix/);

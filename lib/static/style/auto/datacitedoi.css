@@ -26,6 +26,11 @@ li.coin_warning
     display: inline-block;
 }
 
+.datacite_result .datacite_info
+{
+    width: 80%;   
+}
+
 .datacite_result .datacite_info p
 {
     margin-bottom: 0;
