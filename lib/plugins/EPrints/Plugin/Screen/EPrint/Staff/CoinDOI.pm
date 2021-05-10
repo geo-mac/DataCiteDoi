@@ -16,7 +16,7 @@ sub new
 
         #       $self->{priv} = # no specific priv - one per action
 
-        $self->{actions} = [qw/ coindoi claimdoi /];
+        $self->{actions} = [qw/ coindoi claimdoi reservedoi /];
 
         $self->{appears} = [ {
                 place => "eprint_editor_actions",
@@ -47,9 +47,13 @@ sub properties_from
     my $eprint_doi = EPrints::DataCite::Utils::generate_doi( $repo, $eprint );
     $self->{processor}->{eprint_doi} = $eprint_doi;
 
-    # Does the DOI that would be generated for this record already exist?
-    my $mds_doi = EPrints::DataCite::Utils::datacite_mds_doi( $repo, $eprint_doi );
-    $self->{processor}->{mds_doi} = $mds_doi if defined $mds_doi;
+    # Does the DOI that would be generated for this record already exist, either in draft form of some other form
+    my $datacite_doi = EPrints::DataCite::Utils::datacite_doi_query( $repo, $eprint_doi );
+    if( defined $datacite_doi )
+    {
+        # store status
+        $self->{processor}->{datacite_doi} = $datacite_doi->{data};
+    }
 
     # DataCite title query to look for any DOIs that might already represent this record
     $self->{processor}->{datacite_response} = EPrints::DataCite::Utils::datacite_api_query( $repo, "titles.title", $eprint->value( "title" ) );
@@ -70,11 +74,30 @@ sub render
 
     my $frag = $repo->make_doc_fragment;
 
-    # if no doi present, we want the opportunity to coin one, show any potential problems, and show DOIs that might already exist
+    # if no doi present, we have a number of things we want to do
+    # a) show if this doi already exists (awkward)
+    # b) reserve our would-be doi, if not previously reserved
+    # c) coin our doi, show any potential problems
     my $eprintdoifield = $repo->get_conf( "datacitedoi", "eprintdoifield" );
     if( !$eprint->is_set( $eprintdoifield ) )
     {
-        $frag->appendChild( $self->render_coin_doi );
+
+        # if doi already exists in a findable state, we can't coin it again
+        if( defined $self->{processor}->{datacite_doi} && ( $self->{processor}->{datacite_doi}->{attributes}->{state} eq "registered" || $self->{processor}->{datacite_doi}->{attributes}->{state} eq "findable" ) )
+        {
+            $frag->appendChild( $self->render_existing_doi );
+        }
+        else
+        {
+            # if we don't yet have a draft doi, show options to reserve doi
+            unless( exists $self->{processor}->{datacite_doi}->{attributes}->{state} )
+            {
+                $frag->appendChild( $self->render_reserve_doi );
+            }
+
+            # and show regular coin doi button
+            $frag->appendChild( $self->render_coin_doi );
+        }
     }
     else # we already have a DOI
     {
@@ -95,7 +118,64 @@ sub render
     return $frag;
 }
 
-# all the options for adding a DOI to this record including listing problems with the record, indexer events trying to coin a DOI, and DOIs that already exist on DataCite
+sub render_existing_doi
+{
+    my( $self ) = @_;
+
+    my $repo = $self->{repository};
+    my $eprint = $self->{processor}->{eprint};
+
+    my $div = $repo->make_element( "div", class => "existing_doi" );
+ 
+    # TODO: improve the above if statement with some sort of nice regex??  BUt hopefully this sort of occurence is quite rare anyway! 
+    if( $self->{processor}->{datacite_doi}->{attributes}->{url}."/" eq $eprint->get_url ) # the doi already exists and points to us... let's claim it 
+    {
+        $div->appendChild( $self->html_phrase( "existing_doi:our_doi" ) );
+
+        # button to set the eprints doi field
+        my $claim_div = $div->appendChild( $repo->make_element( "div", class => "datacite_claim" ) );
+        my $form = $self->render_form;
+        $form->appendChild( $repo->render_hidden_field( "doi", $self->{processor}->{eprint_doi} ) );
+        $form->appendChild( $self->{session}->render_action_buttons(
+            claimdoi => $self->{session}->phrase( "datacite_dois:claim_doi" ),
+        ) );
+        $claim_div->appendChild( $form );
+    }
+    else # the doi we would coin already exists and points elsewhere... very odd so let's explain the situation
+    {
+        my $external_link = $repo->make_element( "a", href => $self->{processor}->{datacite_doi}->{attributes}->{url}, target => "_blank" );
+        $external_link->appendChild( $repo->make_text( $self->{processor}->{datacite_doi}->{attributes}->{url} ) );
+        $div->appendChild( $self->html_phrase( "existing_doi:external", url => $external_link ) );
+    }
+    
+    return $div;
+}
+
+# render a reserve button for when the doi doesn't exist anywhere on DataCite
+sub render_reserve_doi
+{
+    my( $self ) = @_;
+
+    my $repo = $self->{repository};
+    my $eprint = $self->{processor}->{eprint};
+
+    my $div = $repo->make_element( "div", class => "reserve_doi" );
+
+    # title and description
+    $div->appendChild( $self->html_phrase( "reserve:title" ) );
+    $div->appendChild( $self->html_phrase( "reserve:intro", doi => $repo->make_text(  $self->{processor}->{eprint_doi} ) ) );
+
+    my $form = $self->render_form( "get" );
+    $form->appendChild( $repo->render_action_buttons(
+        _order => [ "reservedoi" ],
+        reservedoi => $repo->phrase( "Plugin/Screen/EPrint/Staff/CoinDOI:action:reservedoi:title" ) )
+    );
+    $div->appendChild( $form );
+
+    return $div;
+}
+
+# render a coin button for assigning the metadata and url for this doi. If there are any issues that would prevent this, display these instead. Also list DOIs that already exist on DataCite that may match this record
 sub render_coin_doi
 {
     my( $self ) = @_;
@@ -109,13 +189,21 @@ sub render_coin_doi
     $div->appendChild( $self->html_phrase( "coin:title" ) );
     $div->appendChild( $self->html_phrase( "coin:intro" ) );
 
+    # Show if we have this doi reserved
+    if( defined $self->{processor}->{datacite_doi} && $self->{processor}->{datacite_doi}->{attributes}->{state} eq "draft" )
+    {
+        $div->appendChild( $self->html_phrase( "coin:reserved",
+            doi => $repo->make_text( $self->{processor}->{datacite_doi}->{id} ),
+            created => EPrints::Time::render_date( $repo, $self->{processor}->{datacite_doi}->{attributes}->{created} )
+        ) );
+    }
+
     ### Coin a New DOI ###
     # first show any warnings
     my $problems = $self->validate( $eprint );
     if( scalar @{$problems} > 0 )
     {
         my $coin_problems = $repo->make_element( "div", class => "coin_problems" );
-        $coin_problems->appendChild( $self->html_phrase( "coin_problems:title" ) );       
         $coin_problems->appendChild( $self->html_phrase( "coin_problems:intro" ) );
 
         my $coin_problems_list = $coin_problems->appendChild( $repo->make_element( "ul" ) );
@@ -125,31 +213,6 @@ sub render_coin_doi
             $li->appendChild( $problem_xhtml );            
         }
         $div->appendChild( $coin_problems );
-    }
-    elsif( defined $self->{processor}->{mds_doi} ) # the doi we would make for this record already exists... something odd going on
-    {
-        my $existing_doi = $repo->make_element( "div", class => "existing_doi" );
-        $div->appendChild( $existing_doi );
-        if( $self->{processor}->{mds_doi}."/" eq $eprint->get_url ) # the doi already exists and points to us... let's claim it 
-        # TODO: improve the above if statement with some sort of nice regex??  BUt hopefully this sort of occurence is quite rare anyway!
-        {
-            $existing_doi->appendChild( $self->html_phrase( "existing_doi:our_doi" ) );
-
-            # button to set the eprints doi field
-            my $claim_div = $existing_doi->appendChild( $repo->make_element( "div", class => "datacite_claim" ) );
-            my $form = $self->render_form;
-            $form->appendChild( $repo->render_hidden_field( "doi", $self->{processor}->{eprint_doi} ) );
-            $form->appendChild( $self->{session}->render_action_buttons(
-                claimdoi => $self->{session}->phrase( "datacite_dois:claim_doi" ),
-            ) );
-            $claim_div->appendChild( $form );
-        }
-        else # the doi we would coin already exists and points elsewhere... very odd so let's explain the situation
-        {
-            my $external_link = $repo->make_element( "a", href => $self->{processor}->{mds_doi}, target => "_blank" );
-            $external_link->appendChild( $repo->make_text( $self->{processor}->{mds_doi} ) );
-            $existing_doi->appendChild( $self->html_phrase( "existing_doi:external", url => $external_link ) );
-        }
     }
     else # we're all good to coin a doi
     {
@@ -315,6 +378,24 @@ sub action_coindoi
         }
     }
 }    
+
+
+sub allow_reservedoi { return 1; }
+
+# reserve this eprint's DOI, i.e. add it as a draft DOI in DataCite
+sub action_reservedoi
+{
+    my( $self ) = @_;
+    my $repository = $self->{repository};
+
+    return undef if (!defined $repository);
+
+    $self->{processor}->{redirect} = $self->redirect_to_me_url()."&_current=2";
+
+    my $doi = $self->{processor}->{eprint_doi};    
+    my $result = EPrints::DataCite::Utils::reserve_doi( $repository, $doi );
+}    
+
 
 sub allow_claimdoi { return 1; }
 

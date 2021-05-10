@@ -29,28 +29,71 @@ sub generate_doi
     return $thisdoi;    
 }
 
-# get the landing page of a single doi from the mds api
-sub datacite_mds_doi
+# reserve a doi, a.k.a create draft doi
+sub reserve_doi
 {
     my( $repo, $doi ) = @_;
+    
+    my $datacite_url = URI->new( $repo->config( 'datacitedoi', 'apiurl' ) . "/dois" );   
+    
+    # build the content
+    my $content = qq(
+{
+  "data": {
+    "type": "dois",
+    "attributes": {
+      "doi": "$doi"
+    }
+  }
+}
+);
 
-    my $datacite_url = URI->new( $repo->config( 'datacitedoi', 'mdsurl' ) . "/doi/$doi" );
-
-    my $ua = LWP::UserAgent->new();
+    # build request
+    my $headers = HTTP::Headers->new(
+        'Content-Type' => 'application/vnd.api+json',
+    );
+    
+    my $req = HTTP::Request->new(
+        POST => $datacite_url,
+        $headers, Encode::encode_utf8( $content )
+    );
 
     my $user_name = $repo->get_conf( "datacitedoi", "user" );
     my $user_pw = $repo->get_conf( "datacitedoi", "pass" );
+    $req->authorization_basic($user_name, $user_pw);
+
+    my $ua = LWP::UserAgent->new;
+    my $res = $ua->request($req);
+    
+    return ($res->content(),$res->code());    
+}
+
+
+# get the landing page of a single doi from the mds api
+sub datacite_doi_query
+{
+    my( $repo, $doi ) = @_;
+
+    my $datacite_url = URI->new( $repo->config( 'datacitedoi', 'apiurl' ) . "/dois/$doi" );
+
+    my $ua = LWP::UserAgent->new();
     my $req = HTTP::Request->new( GET => $datacite_url );
-    $req->authorization_basic( $user_name, $user_pw );
+ 
+    my $user_name = $repo->get_conf( "datacitedoi", "user" );
+    my $user_pw = $repo->get_conf( "datacitedoi", "pass" );
+    $req->authorization_basic($user_name, $user_pw);
 
     my $res = $ua->request($req);
     if( $res->is_success )
     {
-        return $res->content;
+        my $json = JSON->new->allow_nonref;
+        my $doi_data =  $json->utf8->decode( $res->content );
+        return $doi_data;
     }
     else
     {
-        $repo->log("Error retrieving DOI from MDS API. Response code: " . $res->code . ", content: " . $res->content );
+        $repo->log("Error retrieving DOI from API. Response code: " . $res->code . ", content: " . $res->content );
+        return undef;
     }   
 }
 

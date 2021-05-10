@@ -134,9 +134,13 @@
 
     <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:current_doi">The DOI for this EPrint is: <epc:pin name="doi" /></epp:phrase>
 
+    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:reserve:title"><h2>Reserve DOI</h2></epp:phrase>
+    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:reserve:intro"><p>Reserve a DOI, adding it as draft DOI in DataCite.</p><p>DOI: <epc:pin name="doi"/></p></epp:phrase>
+    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:action:reservedoi:title"><h2>Reserve DOI</h2></epp:phrase>
 
     <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:coin:title"><h2>Coin DOI</h2></epp:phrase>
     <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:coin:intro">No DOI is currently assigned to this record.</epp:phrase>
+    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:coin:reserved"><p>The DOI <epc:pin name="doi" /> was previously reserved on <epc:pin name="created" /></p></epp:phrase>
 
     <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:coin_problems:title"><h3>DataCite Warnings</h3></epp:phrase>
     <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:coin_problems:intro"><span class="coin_problems_intro">Before you can coin a new DOI for this record, please resolved the following issues.</span></epp:phrase>

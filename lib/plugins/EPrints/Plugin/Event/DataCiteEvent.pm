@@ -7,7 +7,6 @@ EPrints::Plugin::Event::DataCiteEvent
 package EPrints::Plugin::Event::DataCiteEvent;
 
 use EPrints::Plugin::Event;
-
 use EPrints::DataCite::Utils;
 
 eval "use LWP; use HTTP::Headers::Util";
