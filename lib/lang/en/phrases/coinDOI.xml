@@ -129,33 +129,41 @@
     <epp:phrase id="datacite_validate:need_mapped_type"><p>Your eprint is either <epc:pin name="types">missing its type</epc:pin> or the type has no match in the plugin typemap.</p></epp:phrase>
 
 
+    <!-- ***DataCite DOI Manager Screen*** -->
     <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:title">DataCite DOI Manager</epp:phrase>
     <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:description">Manage DOIs for this record via DataCite</epp:phrase>
 
-    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:current_doi">The DOI for this EPrint is: <epc:pin name="doi" /></epp:phrase>
+    <!-- DataObj Info -->
+    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:dataobj_doi">DOI: <epc:pin name="doi" /></epp:phrase>
 
-    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:reserve:title"><h2>Reserve DOI</h2></epp:phrase>
-    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:reserve:intro"><p>Reserve a DOI, adding it as draft DOI in DataCite.</p><p>DOI: <epc:pin name="doi"/></p></epp:phrase>
-    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:action:reservedoi:title"><h2>Reserve DOI</h2></epp:phrase>
+    <!-- External DOIs -->
+    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:external_doi:title"><strong>External DOI</strong></epp:phrase>
+    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:external_doi:desc"><p>This DOI has been registered via another service.</p></epp:phrase>
 
-    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:coin:title"><h2>Coin DOI</h2></epp:phrase>
-    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:coin:intro">No DOI is currently assigned to this record.</epp:phrase>
-    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:coin:reserved"><p>The DOI <epc:pin name="doi" /> was previously reserved on <epc:pin name="created" /></p></epp:phrase>
+    <!-- Existing DOIs -->
+    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:existing_doi:title"><strong>DOI already registered</strong></epp:phrase>
+    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:existing_doi:desc"><p>This DOI has already been registered in DataCite and redirects to <epc:pin name="url" /></p></epp:phrase>
+    <epp:phrase id="datacite_dois:claim_doi">Claim DOI</epp:phrase>
 
-    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:coin_problems:title"><h3>DataCite Warnings</h3></epp:phrase>
-    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:coin_problems:intro"><span class="coin_problems_intro">Before you can coin a new DOI for this record, please resolved the following issues.</span></epp:phrase>
+    <!-- Reserve DOI -->
+    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:reserve_doi:title"><strong>Reserve DOI</strong></epp:phrase>
+    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:reserve_doi:desc"><p>Reserve this DOI, adding it as a draft DOI in DataCite.</p></epp:phrase>
+    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:action:reservedoi:title">Reserve DOI</epp:phrase>
+    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:reserve_doi:reserved"><p>This DOI was previously reserved on <epc:pin name="reserved" /></p></epp:phrase>
 
-    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:new_doi:intro"><span class="new_doi_intro">Coin a new DOI for this record via DataCite</span></epp:phrase>
+    <!-- Coin DOI -->
+    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:coin_doi:title"><strong>Coin DOI</strong></epp:phrase>
+    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:coin_doi:problems"><p>Before you can coin a new DOI for this record, please resolved the following issues.</p></epp:phrase>
+a
+    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:coin_doi:new"><p>A new DOI can be coined for this record via DataCite.</p></epp:phrase>
+    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:coin_doi:update">
+        <p>This DOI was originally coined on <epc:pin name="registered" /></p>
+        <p>This DOI was last updated on <epc:pin name="updated" /></p>
+        <p>The metadata for this record on DataCite can be updated. This should only be used for correcting errors or adding additional files.</p></epp:phrase>
+    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:action:updatedoi:title">Update DOI</epp:phrase>
 
-    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:existing_doi:our_doi">The DOI is already registered on DataCite and redirects to this EPrint's summary page</epp:phrase>
-    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:existing_doi:external">This DOI is already in use and redirects to: <epc:pin name="url" /></epp:phrase>
-
-
-    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:datacite_dois:title"><h2>DataCite DOIs</h2></epp:phrase>
-
-    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:datacite_dois:error_message"><p>DataCite Error Message, code: <epc:pin name="code"/>. Please contact the <a href="mailto:{$config{adminemail}}"><epc:phrase ref="archive_name" /> administration</a></p></epp:phrase>
-    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:datacite_dois:no_results"><p>No records could be found on DataCite for the EPrint with title: <epc:pin name="title">title</epc:pin></p></epp:phrase>
-
+    <!-- DataCite DOIs -->
+    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:datacite_dois:title"><strong>DataCite DOIs</strong></epp:phrase>
     <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:datacite_dois:datacite_result">
         <p><epc:pin name="title" /></p>
         <p><epc:pin name="publisher" />, <epc:pin name="date" /></p>
@@ -163,8 +171,11 @@
     </epp:phrase>
     <epp:phrase id="datacite_dois:claim_doi">Claim DOI</epp:phrase>
 
-    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:data:title">DataCite XML</epp:phrase>
-    
+    <!-- API Responses -->
+    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:datacite_dois:error_message"><p>DataCite Error Message, code: <epc:pin name="code"/>. Please contact the <a href="mailto:{$config{adminemail}}"><epc:phrase ref="archive_name" /> administration</a></p></epp:phrase>
+    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:datacite_dois:no_results"><p>No records could be found on DataCite for the EPrint with title: <epc:pin name="title">title</epc:pin></p></epp:phrase>
 
+
+    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:data:title">DataCite XML</epp:phrase>
 
 </epp:phrases>

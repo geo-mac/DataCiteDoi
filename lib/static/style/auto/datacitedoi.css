@@ -1,17 +1,6 @@
-.coin_doi
-{
-    padding: 0 0 20px 0;
-}
-
 li.coin_warning
 {
     list-style-image: url(/style/images/warning-icon.png);
-}
-
-.new_doi form
-{
-    display: inline-block;
-    margin-left: 10px;
 }
 
 .datacite_result
