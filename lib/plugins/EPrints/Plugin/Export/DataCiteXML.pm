@@ -35,6 +35,13 @@ sub output_dataobj
     my $repo = $self->{repository};
     my $xml = $repo->xml;
 
+    my $class = $dataobj->get_dataset_id;
+    my $eprint = $dataobj;
+    if( $class eq "document" )
+    {
+        $eprint = $dataobj->get_eprint;
+    }
+
     #reference the datacite schema from config
     our $entry = $xml->create_element( "resource",
         xmlns=> $repo->get_conf( "datacitedoi", "xmlns" ),
@@ -61,15 +68,25 @@ sub output_dataobj
         my $prefix = $repo->get_conf( "datacitedoi", "prefix" );
         return $thisdoi if( $thisdoi !~ /^$prefix/ );
     }
-    $entry->appendChild( $xml->create_data_element( "identifier", $thisdoi , identifierType=>"DOI" ) );
+    $entry->appendChild( $xml->create_data_element( "identifier", $thisdoi, identifierType=>"DOI" ) );
     
     my $conf_hash_reference = $repo->{config};
     foreach my $mapping_fn ( keys %$conf_hash_reference )
     {
         # If this is a datacite_mapping configuration item (aka one of our subroutines)
+        # For both eprints and documents, most of the DataCite XML values still come from the eprint object so these functions will have either the eprint passed to them, or when coining a document DOI, the document's parent eprint
         if( index( $mapping_fn, 'datacite_mapping_' ) == 0 )
         {
             # Value of $mapping_fn matches datacite_mapping_, so is probably a helper method
+            if( $repo->can_call( $mapping_fn ) )
+            {
+                my $mapped_element = $repo->call( $mapping_fn, $xml, $eprint, $repo );
+                $entry->appendChild( $mapped_element ) if( defined $mapped_element );
+            }
+        }
+        # We also have some document specific mapping functions, used only when coining a document DOI
+        elsif( index ( $mapping_fn, 'datacite_document_mapping_' ) == 0 && $class eq "document" )
+        {
             if( $repo->can_call( $mapping_fn ) )
             {
                 my $mapped_element = $repo->call( $mapping_fn, $xml, $dataobj, $repo );

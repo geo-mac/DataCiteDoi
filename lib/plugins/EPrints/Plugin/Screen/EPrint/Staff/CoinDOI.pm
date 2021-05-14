@@ -33,6 +33,26 @@ sub obtain_lock
     return $self->could_obtain_eprint_lock;
 }
 
+sub can_be_viewed
+{
+    my( $self ) = @_;
+
+    return 0 unless $self->could_obtain_eprint_lock;
+
+    my $repo = $self->repository;
+    my $eprint = $self->{processor}->{eprint};
+
+    if( defined $repo->get_conf( "datacitedoi", "typesallowed" ) )
+    {
+        # Is this type of eprint allowed/denied coining?
+        return 0 unless $repo->get_conf( "datacitedoi", "typesallowed",  $eprint->get_type );
+    }
+
+    return 0 unless $repo->get_conf( "datacitedoi", "eprintstatus",  $eprint->value( "eprint_status" ) );
+
+    return $self->allow( $repo->get_conf( "datacitedoi", "minters" ) );
+}
+
 sub properties_from
 {
     my( $self ) = @_;
@@ -46,19 +66,28 @@ sub properties_from
     # get the fields where we would store a doi
     my $eprint_doi_field = $repo->get_conf( "datacitedoi", "eprintdoifield" );
     $self->{processor}->{eprint_field} = $eprint_doi_field;
-    # TODO: assign document field
+    $self->{processor}->{document_field} = $repo->get_conf( "datacitedoi", "documentdoifield" );
 
     # get the DOI this eprint wants to generate
     my $eprint_doi = EPrints::DataCite::Utils::generate_doi( $repo, $eprint );
     $self->{processor}->{eprint_doi} = $eprint_doi;
 
     # Does the DOI that would be generated for this record already exist, either in draft form of some other form
-    # TODO: expand this to get the documents possible dois too...
     my $datacite_doi = EPrints::DataCite::Utils::datacite_doi_query( $repo, $eprint_doi );
-    if( defined $datacite_doi )
+
+    # store status
+    $self->{processor}->{eprint}->{$eprint_id}->{datacite_data} = $datacite_doi->{data} if defined $datacite_doi;
+
+    # only check for existing document dois if this repository can coin doc dois and present landing pages for them
+    if( $repo->get_conf( "datacitedoi", "document_dois" ) )
     {
-        # store status
-        $self->{processor}->{eprint}->{$eprint_id}->{datacite_data} = $datacite_doi->{data};
+        foreach my $doc ( $eprint->get_all_documents )
+        {
+            my $doc_id = $doc->id;
+            my $doc_doi = EPrints::DataCite::Utils::generate_doi( $repo, $doc );
+            my $datacite_doc_doi = EPrints::DataCite::Utils::datacite_doi_query( $repo, $doc_doi );
+            $self->{processor}->{document}->{$doc_id}->{datacite_data} = $datacite_doc_doi->{data} if defined $datacite_doc_doi;        
+        }
     }
 
     # DataCite title query to look for any DOIs that might already represent this record
@@ -79,6 +108,16 @@ sub render
 
     # present datacite info and options for the eprint and its documents
     $frag->appendChild( $self->render_dataobj( $eprint ) );
+
+    # present a collapsible box for each document (if we can coin dois for documents)
+    if( $repo->get_conf( "datacitedoi", "document_dois" ) )
+    {   
+        foreach my $doc ( $eprint->get_all_documents )
+        {
+            $frag->appendChild( $self->render_dataobj( $doc ) );
+        }
+    }
+    
 
     return $frag;
 }
@@ -227,7 +266,7 @@ sub render_existing
 sub render_reserve
 {
     my( $self, $dataobj, $doi, $datacite_data ) = @_;
-
+ 
     my $repo = $self->{repository};
 
     my $div = $repo->make_element( "div", class => "reserve_doi" );
@@ -239,7 +278,7 @@ sub render_reserve
     if( defined $datacite_data && $datacite_data->{attributes}->{state} eq "draft" )
     {
         $div->appendChild( $self->html_phrase( "reserve_doi:reserved",
-            created => EPrints::Time::render_date( $repo, $datacite_data->{attributes}->{created} )
+            reserved => EPrints::Time::render_date( $repo, $datacite_data->{attributes}->{created} )
         ) );
     }
     else # show the option to reserve it
@@ -532,16 +571,18 @@ sub add_result_message
 # Validate this datacite submission - this will call validate_datacite in lib/cfg.d/z_datacite_mapping.pl
 sub validate
 {
-    my( $self, $eprint ) = @_;
+    my( $self, $dataobj ) = @_;
 
     my @problems;
 
-    my $validate_fn = "validate_datacite";
+    my $class = $dataobj->get_dataset_id;
+
+    my $validate_fn = "validate_datacite_$class";
     if( $self->{session}->can_call( $validate_fn ) )
     {
         push @problems, $self->{session}->call( 
             $validate_fn,
-            $eprint, 
+            $dataobj, 
             $self->{session}
         );
     }

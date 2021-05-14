@@ -32,8 +32,15 @@ sub datacite_doi
         if ( eval "use HTTP::Headers::Util" ) { print STDERR "Unable to import HTTP::Headers::Util.\n"; }
     }
 
-    # Check object status first.... TODO: Make work for dataobj == document (just in case)
-    my $shoulddoi = $repository->get_conf( "datacitedoi", "eprintstatus",  $dataobj->value( "eprint_status" ) );
+    my $class = $dataobj->get_dataset_id;
+
+    # Check object status first...
+    my $eprint = $dataobj;
+    if( $class eq "document" )
+    {
+        $eprint = $dataobj->get_eprint;
+    }
+    my $shoulddoi = $repository->get_conf( "datacitedoi", "eprintstatus",  $eprint->value( "eprint_status" ) );
     # Check Doi Status
     if( !$shoulddoi )
     {
@@ -48,7 +55,7 @@ sub datacite_doi
     return $thisdoi if($thisdoi !~ /^$prefix/);
 
     # Pass doi into Export::DataCiteXML...
-    my $xml = $dataobj->export( "DataCiteXML", doi=>$thisdoi );
+    my $xml = $dataobj->export( "DataCiteXML", doi=> $thisdoi );
     return $xml if( $xml =~ /^\d+$/ ); # just a number? coin_doi has passed back an error code pass it on...
 
     #print STDERR "XML: $xml\n";
@@ -72,7 +79,7 @@ sub datacite_doi
 
     if( $response_code !~ /20(1|0)/ )
     {
-        $repository->log( "Metadata response from datacite api when submitting EPrint $dataobj->id: $response_code: $response_content" );
+        $repository->log( "Metadata response from datacite api when submitting $class $dataobj->id: $response_code: $response_content" );
         $repository->log( "XML submitted was:\n$xml" );
         return EPrints::Const::HTTP_INTERNAL_SERVER_ERROR;
     }
@@ -103,8 +110,8 @@ sub datacite_doi
     }
 
     # now it is safe to set DOI value.
-    my $eprintdoifield = $repository->get_conf( "datacitedoi", "eprintdoifield" ); 
-    $dataobj->set_value( $eprintdoifield, $thisdoi );
+    my $doifield = $repository->get_conf( "datacitedoi", $class."doifield" ); 
+    $dataobj->set_value( $doifield, $thisdoi );
     $dataobj->commit();
     # success
     return undef;
