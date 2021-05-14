@@ -126,6 +126,86 @@ $c->{datacite_mapping_creators} = sub {
     return $creators
 };
 
+###############################################################
+# contributors this is derived from contributors
+# https://schema.datacite.org/meta/kernel-4.0/metadata.xsd#creators
+
+$c->{datacite_mapping_contributors} = sub {
+
+    my($xml, $dataobj, $repo) = @_;
+
+    my $contributorType_opts = [ qw/
+        ContactPerson
+        DataCollector
+        DataCurator
+        DataManager
+        Distributor
+        Editor
+        HostingInstitution
+        Producer
+        ProjectLeader
+        ProjectManager
+        ProjectMember
+        RegistrationAgency
+        RegistrationAuthority
+        RelatedPerson
+        Researcher
+        ResearchGroup
+        RightsHolder
+        Sponsor
+        Supervisor
+        WorkPackageLeader
+        Other
+    /];
+
+    my $contributors = undef;
+    
+    if($dataobj->exists_and_set("contributors")){
+
+        $contributors = $xml->create_element("contributors");
+
+        foreach my $c ( @{$dataobj->value("contributors")} )
+        {
+            my $contributor_type;
+            if( exists $c->{type} )
+            {
+                $contributor_type = $repo->get_conf( "datacitedoi", "contributormap", $c->{type} );
+                unless( grep $contributor_type eq $_, @$contributorType_opts )
+                {
+                    $contributor_type = "Other"; # LOC types don't line up nicely with DataCite types, so we'll default to Other
+                }
+            }           
+
+            my $contributor = $xml->create_data_element( "contributor", undef, contributorType => $contributor_type );
+
+            my $name_str = EPrints::Utils::make_name_string($c->{name});
+            my $family = $c->{name}->{family};
+            my $given = $c->{name}->{given};
+            my $orcid = $c->{orcid};
+
+            if ($family eq '' && $given eq '') {
+                $contributors->appendChild($contributor);
+            } else {
+                $contributor->appendChild($xml->create_data_element("contributorName", $name_str));
+            }
+            if ($given eq '') {
+                $contributors->appendChild($contributor);
+            } else {
+                $contributor->appendChild($xml->create_data_element("givenName", $given));
+            }
+            if ($family eq '') {
+                $contributors->appendChild($contributor);
+            } else {
+                $contributor->appendChild($xml->create_data_element("familyName", $family));
+            }
+            $contributors->appendChild($contributor);
+        }
+    }
+
+    return $contributors;
+};
+
+
 ##################################################
 # titles this is derived from the eprint.title
 # https://schema.datacite.org/meta/kernel-4.0/metadata.xsd#titles
@@ -164,8 +244,7 @@ $c->{datacite_mapping_publisher} = sub {
 # Year when the data is made publicly available. 
 # If an embargo period has been in effect, use the date when the embargo period ends.
 
-
-$c->{datacite_mapping_date} = sub {
+$c->{datacite_mapping_publication_year} = sub {
 
     my ( $xml, $dataobj, $repo ) = @_;
 
@@ -187,6 +266,51 @@ $c->{datacite_mapping_date} = sub {
 
     return $publicationYear;
 };
+
+##################################################
+# resourceType this is derived from the eprint.type and the datacitedoi->{typemap} in cfg/cfg.d/z_datacite.pl
+# https://schema.datacite.org/meta/kernel-4.0/metadata.xsd#resourceType
+
+$c->{datacite_mapping_dates} = sub {
+
+    my($xml, $dataobj, $repo) = @_;
+
+    my $dateType_opts = [ qw/ 
+        Accepted
+        Available
+        Copyrighted
+        Collected
+        Created
+        Issued
+        Submitted
+        Updated
+        Valid
+        Withdrawn
+        Other
+    /];
+
+    my $dates_added = 0;
+    my $dates;
+    if( $dataobj->exists_and_set( "dates" ) )
+    {
+        $dates = $xml->create_element( "dates" );
+        foreach my $d ( @{$dataobj->value( "dates" )} )
+        {
+            next unless defined $d->{date_type};
+            my $date_type = $repo->get_conf( "datacitedoi", "datemap", $d->{date_type} );
+            if( defined $d->{date} && defined $date_type && grep $date_type eq $_, @$dateType_opts )
+            {
+                my $date= $xml->create_data_element( "dateType", $d->{date}, dateType => $date_type );
+                $dates->appendChild( $date );
+                $dates_added++;
+            }
+        }
+    }
+
+    return $dates if( $dates_added > 0 ); # we can only return a dates element if we have successfully added dates to it
+    return undef;
+};
+
 
 #################################################################
 # descriptions this is derived from the eprint.abstract
@@ -430,11 +554,6 @@ $c->{datacite_mapping_rights_from_docs} = sub {
     return $rightsList;
 };
 
-
-
-
-
-
 $c->{datacite_mapping_repo_link} = sub {
 
     my($xml, $entry, $dataobj) = @_;
@@ -456,9 +575,76 @@ $c->{datacite_mapping_repo_link} = sub {
 };
 
 
-$c->{validate_datacite} = sub
+$c->{validate_datacite_eprint} = sub
 {
 	my( $eprint, $repository ) = @_;
+
+	my $xml = $repository->xml();
+
+	my @problems = ();
+
+    #NEED CREATORS
+	if( !$eprint->is_set( "creators" ) && 
+		!$eprint->is_set( "corp_creators" ) )
+	{
+		my $creators = $xml->create_element( "span", class=>"ep_problem_field:creators" );
+		my $corp_creators = $xml->create_element( "span", class=>"ep_problem_field:corp_creators" );
+
+		push @problems, $repository->html_phrase( 
+				"datacite_validate:need_creators_or_corp_creators",
+				creators=>$creators,
+				corp_creators=>$corp_creators );
+	}
+
+    #NEED TITLE
+	if( !$eprint->is_set( "title" ) )
+	{
+		my $title = $xml->create_element( "span", class=>"ep_problem_field:title" );
+
+		push @problems, $repository->html_phrase( 
+				"datacite_validate:need_title",
+				title=>$title );
+	}
+    #we will accept the publisher set in config... as long as it has been set to something other than the default
+	if( !$eprint->is_set( "publisher" ) && (!EPrints::Utils::is_set($repository->get_conf("datacitedoi","publisher")) ||
+        $repository->get_conf("datacitedoi","publisher") eq "EPrints Repo" ) )
+	{
+		my $publisher = $xml->create_element( "span", class=>"ep_problem_field:publisher" );
+        my $default_publisher = $repository->make_text( $repository->get_conf("datacitedoi","publisher") );
+		push @problems, $repository->html_phrase( 
+				"datacite_validate:need_publisher",
+				publisher=>$publisher,
+                default_publisher => $default_publisher);
+	}
+
+	if( !$eprint->is_set( "date" ) || !$eprint->is_set( "date_type" ) || ($eprint->value( "date_type" ) ne "published") )
+	{
+		my $dates = $xml->create_element( "span", class=>"ep_problem_field:dates" );
+
+		push @problems, $repository->html_phrase( 
+				"datacite_validate:need_published_year",
+				dates=>$dates );
+	}
+
+	# If we don't have a type or its not in our mapping, thats bad
+	if ( !$eprint->exists_and_set("type") || !$repository->get_conf("datacitedoi", "typemap", $eprint->value("type")))
+	{
+		my $types = $xml->create_element( "span", class=>"ep_problem_field:type" );
+
+		push @problems, $repository->html_phrase(
+				"datacite_validate:need_mapped_type",
+				types=>$types );
+	}
+
+	return( @problems );
+};
+
+$c->{validate_datacite_document} = sub
+{
+	my( $document, $repository ) = @_;
+
+    # some (most, all?) of our properties are still going to come from the eprint object
+    my $eprint = $document->get_eprint;
 
 	my $xml = $repository->xml();
 

@@ -2,8 +2,12 @@
 $c->{plugins}{"Export::DataCiteXML"}{params}{disable} = 0;
 $c->{plugins}{"Event::DataCiteEvent"}{params}{disable} = 0;
 
-# which field to use for the doi
+# flag to indicate if this repository is able to coin dois for documents
+$c->{datacitedoi}{document_dois} = 1;
+
+# which fields to use for the doi
 $c->{datacitedoi}{eprintdoifield} = "id_number";
+$c->{datacitedoi}{documentdoifield} = "id_number";
 
 #for xml:lang attributes in XML
 $c->{datacitedoi}{defaultlangtag} = "en-GB";
@@ -76,6 +80,28 @@ $c->{datacitedoi}{typemap}{other} = {v=>'Misc',a=>'Collection'};
 $c->{datacitedoi}{typemap}{data_collection} = {v=>'Dataset',a=>'Dataset'};
 $c->{datacitedoi}{typemap}{collection} = {v=>'Collection',a=>'Collection'};
 
+# Need to map contributor type to DOI contributorType
+# Controlled list https://schema.datacite.org/meta/kernel-4.3/doc/DataCite-MetadataKernel_v4.3.pdf
+$c->{datacitedoi}{contributormap}{'http://www.loc.gov/loc.terms/relators/MDC'} = 'ContactPerson';
+$c->{datacitedoi}{contributormap}{'http://www.loc.gov/loc.terms/relators/PRC'} = 'ContactPerson';
+$c->{datacitedoi}{contributormap}{'http://www.loc.gov/loc.terms/relators/COL'} = 'DataCollector';
+$c->{datacitedoi}{contributormap}{'http://www.loc.gov/loc.terms/relators/IVR'} = 'DataCollector';
+$c->{datacitedoi}{contributormap}{'http://www.loc.gov/loc.terms/relators/MON'} = 'DataCollector';
+$c->{datacitedoi}{contributormap}{'http://www.loc.gov/loc.terms/relators/DST'} = 'Distributor';
+$c->{datacitedoi}{contributormap}{'http://www.loc.gov/loc.terms/relators/EDT'} = 'Editor';
+$c->{datacitedoi}{contributormap}{'http://www.loc.gov/loc.terms/relators/HST'} = 'HostingInstitution';
+$c->{datacitedoi}{contributormap}{'http://www.loc.gov/loc.terms/relators/BKP'} = 'Producer';
+$c->{datacitedoi}{contributormap}{'http://www.loc.gov/loc.terms/relators/PRO'} = 'Producer';
+$c->{datacitedoi}{contributormap}{'http://www.loc.gov/loc.terms/relators/RTH'} = 'ProjectLeader';
+$c->{datacitedoi}{contributormap}{'http://www.loc.gov/loc.terms/relators/RTM'} = 'ProjectMember';
+$c->{datacitedoi}{contributormap}{'http://www.loc.gov/loc.terms/relators/RES'} = 'Researcher';
+$c->{datacitedoi}{contributormap}{'http://www.loc.gov/loc.terms/relators/CPH'} = 'RightsHolder';
+$c->{datacitedoi}{contributormap}{'http://www.loc.gov/loc.terms/relators/SPN'} = 'Sponsor';
+
+# Need to map dates date type to DOI dateType
+# Controlled list https://schema.datacite.org/meta/kernel-4.3/doc/DataCite-MetadataKernel_v4.3.pdf
+$c->{datacitedoi}{datemap}{accepted} = 'Accepted';
+$c->{datacitedoi}{datemap}{submitted} = 'Submitted';
 
 ###########################
 #### DOI syntax config ####
