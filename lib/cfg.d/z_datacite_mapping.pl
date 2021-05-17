@@ -611,6 +611,69 @@ $c->{datacite_document_mapping_relatedIdentifiers} = sub {
     return $relatedIdentifiers;
 };
 
+##################################################
+# size of document
+# https://schema.datacite.org/meta/kernel-4.3/doc/DataCite-MetadataKernel_v4.3.pdf
+
+$c->{datacite_document_mapping_size} = sub {
+
+    my( $xml, $dataobj, $repo ) = @_;
+
+    my $sizes = undef;
+
+    if( $dataobj->is_set( "main" ) )
+    {   
+        $sizes = $xml->create_element( "sizes" );
+        my $size = $sizes->appendChild( $xml->create_element( "size" ) );
+
+        my %files = $dataobj->files;       
+        
+        $size->appendChild( $repo->make_text( EPrints::Utils::human_filesize( $files{$dataobj->get_main} ) ) );   
+    }
+    
+    return $sizes;
+};
+
+##################################################
+# format of document, i.e. mime_type
+# https://schema.datacite.org/meta/kernel-4.3/doc/DataCite-MetadataKernel_v4.3.pdf
+
+$c->{datacite_document_mapping_format} = sub {
+
+    my( $xml, $dataobj, $repo ) = @_;
+
+    my $formats = undef;
+
+    if( $dataobj->is_set( "mime_type" ) )
+    {   
+        $formats = $xml->create_element( "formats" );
+        my $format = $formats->appendChild( $xml->create_element( "format" ) );      
+        $format->appendChild( $dataobj->render_value( "mime_type" ) );   
+    }
+    
+    return $formats;
+};
+
+##################################################
+# document description, i.e. the version of the document
+# https://schema.datacite.org/meta/kernel-4.3/doc/DataCite-MetadataKernel_v4.3.pdf
+
+$c->{datacite_document_mapping_descriptions} = sub {
+
+    my( $xml, $dataobj, $repo ) = @_;
+
+    my $descriptions = undef;
+
+    if( $dataobj->is_set( "content" ) )
+    {   
+        $descriptions = $xml->create_element( "descriptions" );
+        my $description = $descriptions->appendChild( $xml->create_element( "description" ) );      
+        $descriptions->appendChild( $dataobj->render_value( "content" ) );   
+    }
+    
+    return $descriptions;
+};
+
 
 $c->{validate_datacite_eprint} = sub
 {
