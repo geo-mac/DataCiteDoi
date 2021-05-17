@@ -185,4 +185,70 @@ sub datacite_request_curl
     return ($content, $http_retcode);
 }
 
+
+sub datacite_update_doi
+{
+    my( $self, $eprint, $new_status ) = @_;
+    
+    my $repo = $self->repository;
+
+    my $eprint_doi = EPrints::DataCite::Utils::generate_doi( $repo, $eprint );
+    my $eprint_id = $eprint->id;
+
+    # is there a record of this DOI on DataCite?
+    my $datacite_doi = EPrints::DataCite::Utils::datacite_doi_query( $repo, $eprint_doi );
+    if( !defined $datacite_doi )
+    {
+        $repo->log( "DOI not found on DataCite, no record to update (EPrint: $eprint_id, DOI: $eprint_doi)" );
+        return EPrints::Const::HTTP_NOT_FOUND;
+    }
+
+    # if this is a draft doi, there's no point worrying about it
+    if( $datacite_doi->{data}->{attributes}->{state} eq "draft" )
+    {
+        $repo->log( "DOI exists only in a draft state on DataCite (EPrint: $eprint_id, DOI: $eprint_doi)" );
+        return EPrints::Const::HTTP_NOT_FOUND;
+    }
+
+    my $user_name = $repo->get_conf( "datacitedoi", "user" );
+    my $user_pw = $repo->get_conf( "datacitedoi", "pass" );
+    my $datacite_url = URI->new( $repo->config( 'datacitedoi', 'mdsurl' ) . "/metadata/$eprint_doi" );
+    my $ua = LWP::UserAgent->new();
+    my $req;
+
+    # if our new status is retired and on datacite we're findable... set as registered
+    if( $new_status eq "deletion" && $datacite_doi->{data}->{attributes}->{state} eq "findable" )
+    {
+        # set to registered with a DELETE request
+        $req = HTTP::Request->new( DELETE => $datacite_url );       
+    }
+    # if our new status is archive, and we're registered... set as findable
+    
+    if( $new_status eq "archive" && $datacite_doi->{data}->{attributes}->{state} eq "registered" )
+    {
+        # set to findable with a PUT request
+        $req = HTTP::Request->new( PUT => $datacite_url );       
+    }
+
+    # oddly, despite our previous checks, neither of the previous two conditions were true, so nothing happens...
+    if( !defined $req )
+    {
+        $repo->log( "No update applied to DOI: $eprint_doi (EPrint: $eprint_id)" );
+        return EPrints::Const::HTTP_INTERNAL_SERVER_ERROR;
+    }
+
+    $req->authorization_basic( $user_name, $user_pw );
+    my $res = $ua->request( $req );
+    if( $res->is_success )
+    {
+        $repo->log( "DOI successfully updated following EPrint $eprint_id status update to '$new_status' (DOI: $eprint_doi)" );
+        return EPrints::Const::HTTP_OK;
+    }
+    else
+    {
+        $repo->log("DataCite API error following EPrint $eprint_id status update to '$new_status'. Response code: " . $res->code . ", content: " . $res->content );
+        return EPrints::Const::HTTP_INTERNAL_SERVER_ERROR;
+    }
+}
+
 1;
