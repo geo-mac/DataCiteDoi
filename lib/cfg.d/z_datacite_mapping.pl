@@ -166,8 +166,8 @@ $c->{datacite_mapping_contributors} = sub {
 
         foreach my $c ( @{$dataobj->value("contributors")} )
         {
-            my $contributor_type;
-            if( exists $c->{type} )
+            my $contributor_type = "Other";
+            if( defined $c->{type} )
             {
                 $contributor_type = $repo->get_conf( "datacitedoi", "contributormap", $c->{type} );
                 unless( grep $contributor_type eq $_, @$contributorType_opts )
@@ -572,6 +572,43 @@ $c->{datacite_mapping_repo_link} = sub {
 
     return $relatedIdentifiers;
 
+};
+
+##################################################
+# language this is derived from the document language field 
+# https://schema.datacite.org/meta/kernel-4.3/doc/DataCite-MetadataKernel_v4.3.pdf
+
+$c->{datacite_document_mapping_language} = sub {
+
+    my( $xml, $dataobj, $repo ) = @_;
+
+    my $language = undef;
+    if( $dataobj->exists_and_set( "language" ) )
+    {
+        $language = $xml->create_data_element( "language", $dataobj->value( "language" ) );   
+    }
+    
+    return $language;
+};
+
+##################################################
+# relatedIdentifier for documents relates it to the parent eprint 
+# https://schema.datacite.org/meta/kernel-4.3/doc/DataCite-MetadataKernel_v4.3.pdf
+
+$c->{datacite_document_mapping_relatedIdentifiers} = sub {
+
+    my( $xml, $dataobj, $repo ) = @_;
+
+    my $relatedIdentifiers = undef;
+
+    my $eprint = $dataobj->get_eprint;
+    if( defined $eprint )
+    {   
+        $relatedIdentifiers = $xml->create_element( "relatedIdentifiers" );
+        $relatedIdentifiers->appendChild( $xml->create_data_element( "relatedIdentifier", $eprint->uri, relatedIdentifierType => "URL", relationType => "HasMetadata" ) );   
+    }
+    
+    return $relatedIdentifiers;
 };
 
 

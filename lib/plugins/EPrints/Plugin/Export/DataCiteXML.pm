@@ -19,7 +19,7 @@ sub new
     my $self = $class->SUPER::new(%opts);
 
     $self->{name} = 'Data Cite XML';
-    $self->{accept} = [ 'dataobj/eprint'];
+    $self->{accept} = [ 'dataobj/eprint', 'dataobj/document' ];
     $self->{visible} = 'all';
     $self->{suffix} = '.xml';
     $self->{mimetype} = 'application/xml; charset=utf-8';
