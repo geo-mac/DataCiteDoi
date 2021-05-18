@@ -251,4 +251,60 @@ sub datacite_update_doi
     }
 }
 
+# set a doi as registered rather than findable for a doi previously coined for a document
+sub datacite_remove_doc_doi
+{
+    my( $self, $doc_id, $doc_doi ) = @_;
+    
+    my $repo = $self->repository;
+
+    # is there a record of this DOI on DataCite?
+    my $datacite_doi = EPrints::DataCite::Utils::datacite_doi_query( $repo, $doc_doi );
+    if( !defined $datacite_doi )
+    {
+        $repo->log( "DOI not found on DataCite, no record to update (Document: $doc_id, DOI: $doc_doi)" );
+        return EPrints::Const::HTTP_NOT_FOUND;
+    }
+
+    # if this is a draft or registered doi, there's no point worrying about it
+    if( $datacite_doi->{data}->{attributes}->{state} eq "draft" || $datacite_doi->{data}->{attributes}->{state} eq "reegistered" )
+    {
+        $repo->log( "DOI current in '" . $datacite_doi->{data}->{attributes}->{state} . "' state. No need to apply any changes following document removal. (Document: $doc_id, DOI: $doc_doi)" );
+        return EPrints::Const::HTTP_NOT_FOUND;
+    }
+
+    my $user_name = $repo->get_conf( "datacitedoi", "user" );
+    my $user_pw = $repo->get_conf( "datacitedoi", "pass" );
+    my $datacite_url = URI->new( $repo->config( 'datacitedoi', 'mdsurl' ) . "/metadata/$doc_doi" );
+    my $ua = LWP::UserAgent->new();
+    my $req;
+
+    # if it's a findable doi in datacite, set as registered
+    if( $datacite_doi->{data}->{attributes}->{state} eq "findable" )
+    {
+        # set to registered with a DELETE request
+        $req = HTTP::Request->new( DELETE => $datacite_url );       
+    }
+
+    # we shouldn't end up here, but just in case we do...
+    if( !defined $req )
+    {
+        $repo->log( "No update applied to DOI: $doc_doi (Document: $doc_id)" );
+        return EPrints::Const::HTTP_INTERNAL_SERVER_ERROR;
+    }
+
+    $req->authorization_basic( $user_name, $user_pw );
+    my $res = $ua->request( $req );
+    if( $res->is_success )
+    {
+        $repo->log( "DOI successfully updated following removal of Document $doc_id (DOI: $doc_doi)" );
+        return EPrints::Const::HTTP_OK;
+    }
+    else
+    {
+        $repo->log("DataCite API error following removal of Document $doc_id. Response code: " . $res->code . ", content: " . $res->content );
+        return EPrints::Const::HTTP_INTERNAL_SERVER_ERROR;
+    }
+}
+
 1;

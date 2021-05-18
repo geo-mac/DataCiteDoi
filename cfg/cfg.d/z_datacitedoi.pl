@@ -74,7 +74,7 @@ $c->{datacitedoi}{typemap}{video} = {v=>'Video',a=>'Audiovisual'};
 $c->{datacitedoi}{typemap}{audio} = {v=>'Audio',a=>'Sound'};
 $c->{datacitedoi}{typemap}{dataset} = {v=>'Dataset',a=>'Dataset'};
 $c->{datacitedoi}{typemap}{experiment} = {v=>'Experiment',a=>'Text'};
-$c->{datacitedoi}{typemap}{teaching_resource} = {v=>'TeachingResourse',a=>'InteractiveResource'};
+$c->{datacitedoi}{typemap}{teaching_resource} = {v=>'TeachingResource',a=>'InteractiveResource'};
 $c->{datacitedoi}{typemap}{other} = {v=>'Misc',a=>'Collection'};
 #For use with recollect
 $c->{datacitedoi}{typemap}{data_collection} = {v=>'Dataset',a=>'Dataset'};
@@ -198,4 +198,28 @@ $c->add_dataset_trigger( "eprint", EP_TRIGGER_STATUS_CHANGE , sub {
     });
 });
 
-# TODO: Trigger to update a document DOI's state when a document is removed
+# Trigger to update a document DOI's state when a document is removed
+$c->add_dataset_trigger( "document", EP_TRIGGER_REMOVED , sub {
+    my( %params ) = @_;
+
+    my $repository = $params{repository};
+    return undef if( !defined $repository );
+
+    # do we have a document
+    return if !defined $params{dataobj};
+    my $doc = $params{dataobj};
+
+    # do we have a DOI that matches the one we would/could coin
+    my $doc_doi_field = $repository->get_conf( "datacitedoi", "documentdoifield" );
+    my $doc_doi = EPrints::DataCite::Utils::generate_doi( $repository, $doc );
+    return if !$doc->is_set( $doc_doi_field );
+    return if $doc->value( $doc_doi_field ) ne $doc_doi;
+
+    # trigger indexer to remove doi
+    $repository->dataset( "event_queue" )->create_dataobj({
+        pluginid => "Event::DataCiteEvent",
+        action => "datacite_remove_doc_doi",
+        params => [$doc->id, $doc_doi],
+    });
+});
+
