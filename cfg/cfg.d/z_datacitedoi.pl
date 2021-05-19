@@ -170,6 +170,7 @@ if($c->{datacitedoi}{action_coin}){
 }
 
 $c->{datacitedoi}{max_results} = 5;
+$c->{datacitedoi}{show_xml} = 1;
 
 # Items with DOIs coined in DataCite that are retired should have their status changed from findable to registered
 $c->add_dataset_trigger( "eprint", EP_TRIGGER_STATUS_CHANGE , sub {

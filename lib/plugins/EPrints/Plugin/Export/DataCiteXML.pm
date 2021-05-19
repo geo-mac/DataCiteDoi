@@ -97,7 +97,7 @@ sub output_dataobj
      
 ####### From here on in you can redefine datacite_mapping_[fieldname] sub routines in lib/cfg.d/zzz_datacite_mapping.pl  #######################
 
-    return '<?xml version="1.0" encoding="UTF-8"?>'."\n".$xml->to_string( $entry );
+    return '<?xml version="1.0" encoding="UTF-8"?>'."\n".$xml->to_string( $entry, indent => 1 );
 }
 
 1;

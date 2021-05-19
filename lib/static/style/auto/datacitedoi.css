@@ -1,6 +1,31 @@
+/*** DataCite Screen ***/
+
+.datacite_object
+{
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+    margin-bottom: 10px;
+}
+
 li.coin_warning
 {
     list-style-image: url(/style/images/warning-icon.png);
+}
+
+.coin_doi
+{
+    margin-bottom: 10px;
+}
+
+.datacite_xml .ep_summary_box
+{
+    margin-bottom: 0px;
+}
+
+/*** List results from DataCite ***/
+.datacite_dois
+{
+    padding: 0px 10px 0px 10px;
 }
 
 .datacite_result

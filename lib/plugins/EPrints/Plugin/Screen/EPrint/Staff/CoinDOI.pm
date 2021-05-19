@@ -139,14 +139,21 @@ sub render_dataobj
     $datacite_data = $self->{processor}->{$class}->{$dataobj_id}->{datacite_data} if exists $self->{processor}->{$class}->{$dataobj_id};
 
     ### start rendering
-    my $div = $repo->make_element( "div", class => "datacite_$class" );
+    my $div = $repo->make_element( "div", class => "datacite_object datacite_$class" );
 
     ## display basic info about the dataobj
     my $info_div = $div->appendChild( $repo->make_element( "div", class => "datacite_info" ) );
 
     # dataobj citation
     my $citation_div = $div->appendChild( $repo->make_element( "div", class => "datacite_citation" ) );
-    $citation_div->appendChild( $dataobj->render_citation_link );
+    if( $class eq "eprint" )
+    {
+        $citation_div->appendChild( $dataobj->render_citation_link );
+    }
+    elsif( $class eq "document" )
+    {
+        $citation_div->appendChild( $self->render_document_citation ( $dataobj ) );
+    }
 
     # dataobj doi
     my $doi_div = $div->appendChild( $repo->make_element( "div", class => "datacite_doi" ) );
@@ -203,19 +210,43 @@ sub render_dataobj
         $div->appendChild( $self->render_datacite_dois( $dataobj ) );
     }
 
-    # DataCite XML: Do people want this???
-    #my $box = $repo->make_element( "div", style=>"text-align: left" );
-    #$box->appendChild( EPrints::Box::render(
-    #    id => "datacite_xml",
-    #    title => $self->html_phrase( "data:title" ),
-    #    content => $self->render_xml,
-    #    collapsed => 1,
-    #    session => $repo,
-    #) );
-    #$frag->appendChild( $box );
+    # DataCite XML
+    if( $repo->get_conf( "datacitedoi", "show_xml" ) )
+    {
+        my $box = $repo->make_element( "div", class => "datacite_xml" );
+        $box->appendChild( EPrints::Box::render(
+            id => "datacite_xml_".$class."_".$dataobj_id,
+            title => $self->html_phrase( "data:title" ),
+            content => $self->render_xml( $dataobj ),
+            collapsed => 1,
+            session => $repo,
+        ) );
+        $div->appendChild( $box );
+    }
 
     return $div;
 }
+
+sub render_document_citation
+{
+    my( $self, $doc ) = @_;
+
+    my $repo = $self->{repository};
+  
+    my $div = $repo->make_element( "div", class => "datacite_doc_citation" );
+    
+    my $table = $div->appendChild( $repo->make_element( "div", class => "ep_table" ) );
+    my $tr = $table->appendChild( $repo->make_element( "div", class => "ep_table_row" ) );
+
+    my $icon = $tr->appendChild( $repo->make_element( "div", class => "ep_table_cell" ) );
+    $icon->appendChild( $doc->render_icon_link );
+
+    my $citation = $tr->appendChild( $repo->make_element( "div", class => "ep_table_cell" ) );
+    $citation->appendChild( $doc->render_citation_link );
+
+    return $div;
+}
+
 
 sub render_external
 {
@@ -433,14 +464,13 @@ sub render_datacite_result
 # show the xml that the datacite export plugin produces and would send off to datacite when coining
 sub render_xml
 {
-    my( $self ) = @_;
+    my( $self, $dataobj ) = @_;
 
     my $repo = $self->{repository};
-    my $eprint = $self->{processor}->{eprint};
 
     my $pre = $repo->make_element( "pre" );
 
-    my $xml = $eprint->export( "DataCiteXML" );
+    my $xml = $dataobj->export( "DataCiteXML" );
     $pre->appendChild( $repo->make_text( $xml ) );
 
     return $pre;
