@@ -134,26 +134,30 @@
     <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:description">Manage DOIs for this record via DataCite</epp:phrase>
 
     <!-- DataObj Info -->
-    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:dataobj_doi">DOI: <epc:pin name="doi" /></epp:phrase>
+    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:dataobj_doi"><epc:pin name="dataobj" /> DOI: <epc:pin name="doi" /></epp:phrase>
+    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:eprint_name">EPrint</epp:phrase>
+    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:document_name">Document</epp:phrase>
+    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:undefined">Unspecified</epp:phrase>
+    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:datacite_doi">DataCite DOI: <epc:pin name="doi" /></epp:phrase>
 
     <!-- External DOIs -->
-    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:external_doi:title"><strong>External DOI</strong></epp:phrase>
+    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:external_doi:title">External DOI</epp:phrase>
     <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:external_doi:desc"><p>This DOI has been registered via another service.</p></epp:phrase>
 
     <!-- Existing DOIs -->
-    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:existing_doi:title"><strong>DOI already registered</strong></epp:phrase>
+    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:existing_doi:title">DOI already registered</epp:phrase>
     <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:existing_doi:desc"><p>This DOI has already been registered in DataCite and redirects to <epc:pin name="url" /></p></epp:phrase>
-    <epp:phrase id="datacite_dois:claim_doi">Claim DOI</epp:phrase>
+    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:existing_dois:claim_doi">Claim DOI</epp:phrase>
 
     <!-- Reserve DOI -->
-    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:reserve_doi:title"><strong>Reserve DOI</strong></epp:phrase>
+    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:reserve_doi:title">Reserve DOI</epp:phrase>
     <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:reserve_doi:desc"><p>Reserve this DOI, adding it as a draft DOI in DataCite.</p></epp:phrase>
     <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:action:reservedoi:title">Reserve DOI</epp:phrase>
-    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:reserve_doi:reserved"><p>This DOI was previously reserved on <epc:pin name="reserved" /></p></epp:phrase>
+    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:reserve_doi:reserved">This DOI was previously reserved on <epc:pin name="reserved" /></epp:phrase>
 
     <!-- Coin DOI -->
-    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:coin_doi:title"><strong>Coin DOI</strong></epp:phrase>
-    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:coin_doi:problems"><p>Before you can coin a new DOI for this record, please resolved the following issues.</p></epp:phrase>
+    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:coin_doi:title">Coin DOI</epp:phrase>
+    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:coin_doi:problems">Before you can coin a new DOI for this record, please resolved the following issues.</epp:phrase>
 a
     <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:coin_doi:new"><p>A new DOI can be coined for this record via DataCite.</p></epp:phrase>
     <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:coin_doi:update">
@@ -163,7 +167,7 @@ a
     <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:action:updatedoi:title">Update DOI</epp:phrase>
 
     <!-- DataCite DOIs -->
-    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:datacite_dois:title"><strong>DataCite DOIs</strong></epp:phrase>
+    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:datacite_dois:title">DataCite DOIs</epp:phrase>
     <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:datacite_dois:datacite_result">
         <p><epc:pin name="title" /></p>
         <p><epc:pin name="publisher" />, <epc:pin name="date" /></p>

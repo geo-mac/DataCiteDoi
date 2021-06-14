@@ -142,10 +142,10 @@ sub render_dataobj
     my $div = $repo->make_element( "div", class => "datacite_object datacite_$class" );
 
     ## display basic info about the dataobj
-    my $info_div = $div->appendChild( $repo->make_element( "div", class => "datacite_info" ) );
+    my $info_div = $div->appendChild( $repo->make_element( "div", class => "datacite_dataobj_info datacite_section" ) );
 
     # dataobj citation
-    my $citation_div = $div->appendChild( $repo->make_element( "div", class => "datacite_citation" ) );
+    my $citation_div = $info_div->appendChild( $repo->make_element( "div", class => "datacite_citation" ) );
     if( $class eq "eprint" )
     {
         $citation_div->appendChild( $dataobj->render_citation_link );
@@ -156,25 +156,33 @@ sub render_dataobj
     }
 
     # dataobj doi
-    my $doi_div = $div->appendChild( $repo->make_element( "div", class => "datacite_doi" ) );
+    my $doi_div = $info_div->appendChild( $repo->make_element( "div", class => "datacite_doi_info" ) );
+
+    my $dataobj_doi_div = $doi_div->appendChild( $repo->make_element( "div", class => $class."_doi" ) );
 
     # if set display the current doi
     if( $dataobj->is_set( $doi_field ) ) 
     {
-        $doi_div->appendChild( $self->html_phrase( "dataobj_doi", doi => $dataobj->render_value( $doi_field ) ) );
+        $dataobj_doi_div->appendChild( $self->html_phrase( "dataobj_doi", dataobj => $self->html_phrase( $class."_name" ), doi => $dataobj->render_value( $doi_field ) ) );
     }
     else # display the doi we could coin
     {
+        # first show we have no doi for the current dataobj
+        $dataobj_doi_div->appendChild( $self->html_phrase( "dataobj_doi", dataobj => $self->html_phrase( $class."_name" ), doi => $self->html_phrase( "undefined" ) ) );
+
+        # now show the doi available via datacite
+        my $datacite_doi_div = $doi_div->appendChild( $repo->make_element( "div", class => "datacite_doi" ) );
+
         # does this doi exist in datacite as a findable item, if so display as link
         if( defined $datacite_data && $datacite_data->{attributes}->{state} eq "findable" )
         {
             my $doi_link = $repo->make_element( "a", href => $dataobj_doi );
             $doi_link->appendChild( $repo->make_text( $dataobj_doi ) );
-            $doi_div->appendChild( $self->html_phrase( "dataobj_doi", doi => $doi_link ) );  
+            $doi_div->appendChild( $self->html_phrase( "datacite_doi", doi => $doi_link ) );  
         }
         else # display uncoined doi as plain text
         {
-            $doi_div->appendChild( $self->html_phrase( "dataobj_doi", doi => $repo->make_text( $dataobj_doi ) ) );  
+            $doi_div->appendChild( $self->html_phrase( "datacite_doi", doi => $repo->make_text( $dataobj_doi ) ) );  
         }
     }
 
@@ -268,9 +276,11 @@ sub render_existing
 
     my $repo = $self->{repository};
 
-    my $div = $repo->make_element( "div", class => "existing_doi" );
+    my $div = $repo->make_element( "div", class => "existing_doi datacite_section" );
  
-    $div->appendChild( $self->html_phrase( "existing_doi:title" ) );
+    # title
+    my $title_div = $div->appendChild( $repo->make_element( "div", class => "datacite_title" ) );
+    $title_div->appendChild( $self->html_phrase( "existing_doi:title" ) );
 
     # show the link
     my $link = $repo->make_element( "a", href => $datacite_data->{attributes}->{url}, target => "_blank" );
@@ -300,10 +310,11 @@ sub render_reserve
  
     my $repo = $self->{repository};
 
-    my $div = $repo->make_element( "div", class => "reserve_doi" );
+    my $div = $repo->make_element( "div", class => "reserve_doi datacite_section" );
 
     # title
-    $div->appendChild( $self->html_phrase( "reserve_doi:title" ) );
+    my $title_div = $div->appendChild( $repo->make_element( "div", class => "datacite_title" ) );
+    $title_div->appendChild( $self->html_phrase( "reserve_doi:title" ) );
 
     # if the item has already been reserved show when it was reserved
     if( defined $datacite_data && $datacite_data->{attributes}->{state} eq "draft" )
@@ -335,10 +346,11 @@ sub render_coin
 
     my $repo = $self->{repository};
 
-    my $div = $repo->make_element( "div", class => "coin_doi" );
+    my $div = $repo->make_element( "div", class => "coin_doi datacite_section" );
 
-    # title and description
-    $div->appendChild( $self->html_phrase( "coin_doi:title" ) );
+    # title
+    my $title_div = $div->appendChild( $repo->make_element( "div", class => "datacite_title" ) );
+    $title_div->appendChild( $self->html_phrase( "coin_doi:title" ) );
 
     # first show any warnings
     my $problems = $self->validate( $dataobj );
@@ -400,17 +412,20 @@ sub render_datacite_dois
 
     my $repo = $self->{repository};
 
-    my $div = $repo->make_element( "div", class => "datacite_dois" );
+    my $div = $repo->make_element( "div", class => "datacite_dois datacite_section" );
 
-    # title and description
-    $div->appendChild( $self->html_phrase( "datacite_dois:title" ) );
+    # title
+    my $title_div = $div->appendChild( $repo->make_element( "div", class => "datacite_title" ) );
+    $title_div->appendChild( $self->html_phrase( "datacite_dois:title" ) );
 
     my $datacite_response = $self->{processor}->{datacite_response};
     if( exists $datacite_response->{results} && scalar @{$datacite_response->{results}} > 0 ) # success, show results
     {
+        my $results_div = $div->appendChild( $repo->make_element( "div", class => "datacite_results" ) );
+
         foreach my $result ( @{$datacite_response->{results}} )
         {
-            $div->appendChild( $self->render_datacite_result( $dataobj, $result ) );
+            $results_div->appendChild( $self->render_datacite_result( $dataobj, $result ) );
         }
     }
     elsif( exists $datacite_response->{error} ) # an actual error from the api
