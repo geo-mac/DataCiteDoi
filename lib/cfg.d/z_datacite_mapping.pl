@@ -250,7 +250,7 @@ $c->{datacite_mapping_publication_year} = sub {
 
     my $publicationYear = undef;
     my $pub_year = undef;
-    if($dataobj->exists_and_set("date")) {
+    if( $dataobj->exists_and_set( "date" ) && $dataobj->exists_and_set( "date_type" ) && $dataobj->value( "date_type" ) eq "published" ) {
         $dataobj->get_value( "date" ) =~ /^([0-9]{4})/;
         $pub_year = $1;
     }
