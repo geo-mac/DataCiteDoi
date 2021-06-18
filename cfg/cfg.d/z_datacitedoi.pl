@@ -186,15 +186,18 @@ $c->add_dataset_trigger( "eprint", EP_TRIGGER_STATUS_CHANGE , sub {
     # do we have a DOI that matches the one we would/could coin
     my $eprint_doi_field = $repository->get_conf( "datacitedoi", "eprintdoifield" );
     my $eprint_doi = EPrints::DataCite::Utils::generate_doi( $repository, $eprint );
+
     return if !$eprint->is_set( $eprint_doi_field );
-    return if $eprint->value( $eprint_doi_field ) ne $eprint_doi;
+
+    # DOIs are not case sensitive so lets lowercase both values to be sure they match
+    return if lc( $eprint->value( $eprint_doi_field ) ) ne lc( $eprint_doi );
 
     # we could also check the datacite api here to see what state (if the doi can be found) it thinks the DOI is in... but we'll save this for the indexer event so as not to cause any delays to the status change
  
     # trigger indexer update doi event
     $repository->dataset( "event_queue" )->create_dataobj({
         pluginid => "Event::DataCiteEvent",
-        action => "datacite_update_doi",
+        action => "datacite_update_doi_state",
         params => [$eprint->internal_uri, $params{new_status}],
     });
 });
@@ -223,4 +226,3 @@ $c->add_dataset_trigger( "document", EP_TRIGGER_REMOVED , sub {
         params => [$doc->id, $doc_doi],
     });
 });
-

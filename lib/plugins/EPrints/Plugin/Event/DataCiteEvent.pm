@@ -113,6 +113,10 @@ sub datacite_doi
     my $doifield = $repository->get_conf( "datacitedoi", $class."doifield" ); 
     $dataobj->set_value( $doifield, $thisdoi );
     $dataobj->commit();
+
+    # we should also store a record of the dataobj's mandatory datacite fields and values
+    update_repository_record( $repository, $dataobj );
+
     # success
     return undef;
 }
@@ -186,7 +190,7 @@ sub datacite_request_curl
 }
 
 
-sub datacite_update_doi
+sub datacite_update_doi_state
 {
     my( $self, $eprint, $new_status ) = @_;
     
@@ -219,13 +223,27 @@ sub datacite_update_doi
     # if our new status is retired and on datacite we're findable... set as registered
     if( $new_status eq "deletion" && $datacite_doi->{data}->{attributes}->{state} eq "findable" )
     {
+        # first set a tombstone page for the newly retired item
+        apply_tombstone_url( $repo, "eprint", $eprint_id ); 
+
         # set to registered with a DELETE request
         $req = HTTP::Request->new( DELETE => $datacite_url );       
     }
+
     # if our new status is archive, and we're registered... set as findable
-    
     if( $new_status eq "archive" && $datacite_doi->{data}->{attributes}->{state} eq "registered" )
     {
+        # set url to the eprint summary page
+        my $update = update_datacite_url( $repo, $eprint_doi, $eprint->uri );
+        if( $update )
+        {
+            $repo->log( "DataCite updated with URL: $eprint_url (DOI: $eprint_doi)" );
+        }
+        else
+        {
+            $repo->log( "Failed to update URL when moving EPrint back to the live archive, URL: $eprint_url (DOI: $eprint_doi)" );     
+        }
+
         # set to findable with a PUT request
         $req = HTTP::Request->new( PUT => $datacite_url );       
     }
@@ -266,8 +284,11 @@ sub datacite_remove_doc_doi
         return EPrints::Const::HTTP_NOT_FOUND;
     }
 
+    # we've set the DOI as registered, not findable, so now update the URL to the tombstone page
+    apply_tombstone_url( $repo, "document", $doc_id ); 
+
     # if this is a draft or registered doi, there's no point worrying about it
-    if( $datacite_doi->{data}->{attributes}->{state} eq "draft" || $datacite_doi->{data}->{attributes}->{state} eq "reegistered" )
+    if( $datacite_doi->{data}->{attributes}->{state} eq "draft" || $datacite_doi->{data}->{attributes}->{state} eq "registered" )
     {
         $repo->log( "DOI current in '" . $datacite_doi->{data}->{attributes}->{state} . "' state. No need to apply any changes following document removal. (Document: $doc_id, DOI: $doc_doi)" );
         return EPrints::Const::HTTP_NOT_FOUND;
@@ -297,13 +318,115 @@ sub datacite_remove_doc_doi
     my $res = $ua->request( $req );
     if( $res->is_success )
     {
-        $repo->log( "DOI successfully updated following removal of Document $doc_id (DOI: $doc_doi)" );
+        $repo->log( "DOI successfully updated following removal of Document $doc_id (DOI: $doc_doi)" );   
         return EPrints::Const::HTTP_OK;
     }
     else
     {
         $repo->log("DataCite API error following removal of Document $doc_id. Response code: " . $res->code . ", content: " . $res->content );
         return EPrints::Const::HTTP_INTERNAL_SERVER_ERROR;
+    }
+}
+
+# update our own json representation of the mandatory fields
+sub update_repository_record
+{
+    my( $repo, $dataobj ) = @_;
+
+    my $class = $dataobj->get_dataset_id;
+
+    # get the datacite record
+    my $datacite_ds = $repo->dataset( "datacite" );
+    my $dc = $datacite_ds->dataobj_class->get_datacite_record( $repo, $class, $dataobj->id );
+    if( !defined $dc )
+    {
+        # we need to create a new audit record
+        $dc = $datacite_ds->create_dataobj(
+            {
+                datasetid => $class,
+                objectid => $dataobj->id
+            }
+        );
+    }
+
+    # set the doi
+    $dc->set_value( "doi", EPrints::DataCite::Utils::generate_doi( $repo, $dataobj ) );
+
+    # set the citation
+    if( $class eq "eprint" )
+    {
+        my $citation = $dataobj->render_citation;
+        $dc->set_value( "citation", $citation );
+    }
+    elsif( $class eq "document" )
+    {
+        my $citation = $dataobj->render_citation;
+        $dc->set_value( "citation", $citation );
+    }
+    $dc->commit;
+}
+
+# update datacite record with tombstone page
+sub apply_tombstone_url
+{
+    my( $repo, $class, $dataobj_id ) = @_;
+
+    # first get the datacite record
+    my $datacite_ds = $repo->dataset( "datacite" );
+    my $dc = $datacite_ds->dataobj_class->get_datacite_record( $repo, $class, $dataobj_id );
+ 
+    if( !defined $dc )
+    {
+       $repo->log( "Failed to update $class $dataobj_id with a tombstone url. No tombstone page content found." );
+       return 0;  
+    }
+
+    my $tombstone_url = $dc->get_url;
+    my $doi = $dc->value( "doi" );
+ 
+    my $success = update_datacite_url( $repo, $doi, $tombstone_url ); 
+    if( $scuess )
+    {
+        $repo->log( "DOI $doi successfully updated with the following tombstone URL: $tombstone_url" );
+    }
+    else
+    {
+        $repo->log( "DOI $doi failed to update with the following tombstone URL: $tombstone_url" );
+    }
+}
+
+sub update_datacite_url
+{
+    my( $repo, $doi, $url ) = @_;
+
+    # get credentials
+    my $user_name = $repo->get_conf( "datacitedoi", "user" );
+    my $user_pw = $repo->get_conf( "datacitedoi", "pass" );
+
+    # build url
+    my $datacite_url = URI->new( $repo->config( 'datacitedoi', 'mdsurl' ) . "/doi/$doi" );
+
+    # build the request
+    my $headers = HTTP::Headers->new(
+        'Content-Type' => 'text/plain;charset=UTF-8'
+    );
+    my $ua = LWP::UserAgent->new();
+    my $req = HTTP::Request->new( 
+        PUT => $datacite_url,
+        $headers,
+        Encode::encode_utf8( "doi=$doi\nurl=$url" )
+    );
+
+    # make the request
+    $req->authorization_basic( $user_name, $user_pw );
+    my $res = $ua->request( $req );
+    if( $res->is_success )
+    {
+        return 1;
+    }
+    else
+    {
+        return 0;  
     }
 }
 
