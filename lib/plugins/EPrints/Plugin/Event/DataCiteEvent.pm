@@ -366,12 +366,12 @@ sub update_repository_record
     $dc->commit;
 }
 
-# update datacite record with tombstone page
+# update DataCite record with tombstone page
 sub apply_tombstone_url
 {
     my( $repo, $class, $dataobj_id ) = @_;
 
-    # first get the datacite record
+    # first get the tombstone content from the repository
     my $datacite_ds = $repo->dataset( "datacite" );
     my $dc = $datacite_ds->dataobj_class->get_datacite_record( $repo, $class, $dataobj_id );
  
@@ -381,11 +381,13 @@ sub apply_tombstone_url
        return 0;  
     }
 
+    # get the tombstone url
     my $tombstone_url = $dc->get_url;
     my $doi = $dc->value( "doi" );
  
+    # update datacite
     my $success = update_datacite_url( $repo, $doi, $tombstone_url ); 
-    if( $scuess )
+    if( $success )
     {
         $repo->log( "DOI $doi successfully updated with the following tombstone URL: $tombstone_url" );
     }
@@ -395,6 +397,7 @@ sub apply_tombstone_url
     }
 }
 
+# updates a DOI on DataCite with a new URL
 sub update_datacite_url
 {
     my( $repo, $doi, $url ) = @_;
