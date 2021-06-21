@@ -269,34 +269,34 @@ sub datacite_update_doi_state
     }
 }
 
-# set a doi as registered rather than findable for a doi previously coined for a document
-sub datacite_remove_doc_doi
+# set a doi as registered rather than findable for a dataobj that has been removed
+sub datacite_remove_doi
 {
-    my( $self, $doc_id, $doc_doi ) = @_;
+    my( $self, $dataset_id, $dataobj_id, $doi ) = @_;
     
     my $repo = $self->repository;
 
     # is there a record of this DOI on DataCite?
-    my $datacite_doi = EPrints::DataCite::Utils::datacite_doi_query( $repo, $doc_doi );
+    my $datacite_doi = EPrints::DataCite::Utils::datacite_doi_query( $repo, $doi );
     if( !defined $datacite_doi )
     {
-        $repo->log( "DOI not found on DataCite, no record to update (Document: $doc_id, DOI: $doc_doi)" );
+        $repo->log( "DOI not found on DataCite, no record to update ($dataset_id: $dataobj_id, DOI: $doi)" );
         return EPrints::Const::HTTP_NOT_FOUND;
     }
 
     # we've set the DOI as registered, not findable, so now update the URL to the tombstone page
-    apply_tombstone_url( $repo, "document", $doc_id ); 
+    apply_tombstone_url( $repo, $dataset_id, $dataobj_id ); 
 
     # if this is a draft or registered doi, there's no point worrying about it
     if( $datacite_doi->{data}->{attributes}->{state} eq "draft" || $datacite_doi->{data}->{attributes}->{state} eq "registered" )
     {
-        $repo->log( "DOI current in '" . $datacite_doi->{data}->{attributes}->{state} . "' state. No need to apply any changes following document removal. (Document: $doc_id, DOI: $doc_doi)" );
+        $repo->log( "DOI current in '" . $datacite_doi->{data}->{attributes}->{state} . "' state. No need to apply any changes following dataobj removal. ($dataset_id: $dataobj_id, DOI: $doi)" );
         return EPrints::Const::HTTP_NOT_FOUND;
     }
 
     my $user_name = $repo->get_conf( "datacitedoi", "user" );
     my $user_pw = $repo->get_conf( "datacitedoi", "pass" );
-    my $datacite_url = URI->new( $repo->config( 'datacitedoi', 'mdsurl' ) . "/metadata/$doc_doi" );
+    my $datacite_url = URI->new( $repo->config( 'datacitedoi', 'mdsurl' ) . "/metadata/$doi" );
     my $ua = LWP::UserAgent->new();
     my $req;
 
@@ -310,7 +310,7 @@ sub datacite_remove_doc_doi
     # we shouldn't end up here, but just in case we do...
     if( !defined $req )
     {
-        $repo->log( "No update applied to DOI: $doc_doi (Document: $doc_id)" );
+        $repo->log( "No update applied to DOI: $doi ($dataset_id: $dataobj_id)" );
         return EPrints::Const::HTTP_INTERNAL_SERVER_ERROR;
     }
 
@@ -318,12 +318,12 @@ sub datacite_remove_doc_doi
     my $res = $ua->request( $req );
     if( $res->is_success )
     {
-        $repo->log( "DOI successfully updated following removal of Document $doc_id (DOI: $doc_doi)" );   
+        $repo->log( "DOI successfully updated following removal of record ($dataset_id: $dataobj_id, DOI: $doi)" );   
         return EPrints::Const::HTTP_OK;
     }
     else
     {
-        $repo->log("DataCite API error following removal of Document $doc_id. Response code: " . $res->code . ", content: " . $res->content );
+        $repo->log("DataCite API error following removal of $dataset_id $dataobj_id. Response code: " . $res->code . ", content: " . $res->content );
         return EPrints::Const::HTTP_INTERNAL_SERVER_ERROR;
     }
 }

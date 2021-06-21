@@ -202,27 +202,34 @@ $c->add_dataset_trigger( "eprint", EP_TRIGGER_STATUS_CHANGE , sub {
     });
 });
 
-# Trigger to update a document DOI's state when a document is removed
-$c->add_dataset_trigger( "document", EP_TRIGGER_REMOVED , sub {
-    my( %params ) = @_;
+$c->add_dataset_trigger( "eprint", EP_TRIGGER_REMOVED, \&remove_doi );
+$c->add_dataset_trigger( "document", EP_TRIGGER_REMOVED, \&remove_doi );
 
-    my $repository = $params{repository};
-    return undef if( !defined $repository );
+{
+    sub remove_doi
+    {
+        my( %params ) = @_;
 
-    # do we have a document
-    return if !defined $params{dataobj};
-    my $doc = $params{dataobj};
+        my $repository = $params{repository};
+        return undef if( !defined $repository );
 
-    # do we have a DOI that matches the one we would/could coin
-    my $doc_doi_field = $repository->get_conf( "datacitedoi", "documentdoifield" );
-    my $doc_doi = EPrints::DataCite::Utils::generate_doi( $repository, $doc );
-    return if !$doc->is_set( $doc_doi_field );
-    return if $doc->value( $doc_doi_field ) ne $doc_doi;
+        # do we have a dataobj (eprint or document)
+        return if !defined $params{dataobj};
+        my $dataobj = $params{dataobj};
 
-    # trigger indexer to remove doi
-    $repository->dataset( "event_queue" )->create_dataobj({
-        pluginid => "Event::DataCiteEvent",
-        action => "datacite_remove_doc_doi",
-        params => [$doc->id, $doc_doi],
-    });
-});
+        my $datasetid = $dataobj->get_dataset_id;
+
+        # do we have a DOI that matches the one we would/could coin
+        my $doi_field = $repository->get_conf( "datacitedoi", $datasetid."doifield" );
+        my $doi = EPrints::DataCite::Utils::generate_doi( $repository, $dataobj );
+        return if !$dataobj->is_set( $doi_field );
+        return if $dataobj->value( $doi_field ) ne $doi;
+
+        # trigger indexer to remove doi
+        $repository->dataset( "event_queue" )->create_dataobj({
+            pluginid => "Event::DataCiteEvent",
+            action => "datacite_remove_doi",
+            params => [$datasetid, $dataobj->id, $doi],
+        });
+    }
+};
