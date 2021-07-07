@@ -3,6 +3,7 @@ package EPrints::Plugin::Screen::EPrint::Staff::CoinDOI;
 #use EPrints::Plugin::Screen::EPrint;
 
 use EPrints::DataCite::Utils;
+use Data::Dumper;
 
 @ISA = ( 'EPrints::Plugin::Screen::EPrint' );
 
@@ -63,38 +64,149 @@ sub properties_from
     my $eprint = $self->{processor}->{eprint};
     my $eprint_id = $eprint->id;
 
-    # get the fields where we would store a doi
+    # get the fields where we would store dois
     my $eprint_doi_field = $repo->get_conf( "datacitedoi", "eprintdoifield" );
+    my $document_doi_field = $repo->get_conf( "datacitedoi", "documentdoifield" );
+
     $self->{processor}->{eprint_field} = $eprint_doi_field;
-    $self->{processor}->{document_field} = $repo->get_conf( "datacitedoi", "documentdoifield" );
+    $self->{processor}->{document_field} = $document_doi_field;
 
-    # get the DOI this eprint wants to generate
-    my $eprint_doi = EPrints::DataCite::Utils::generate_doi( $repo, $eprint );
-    $self->{processor}->{eprint_doi} = $eprint_doi;
+    ## EPrint DOI data
+    $self->{processor}->{dois}->{eprint}->{$eprint_id} = $self->get_doi_info( $repo, $eprint, $eprint_doi_field );
 
-    # Does the DOI that would be generated for this record already exist, either in draft form of some other form
-    my $datacite_doi = EPrints::DataCite::Utils::datacite_doi_query( $repo, $eprint_doi );
+    # check to see if this eprint is a later version of an existing eprint
+    if( $eprint->is_set( "succeeds" ) )
+    {
+        my $ds = $eprint->dataset;
+        my $parent = $ds->dataobj( $eprint->value( "succeeds" ) );          
+        if( defined $parent )
+        {
+            my $parent_id = $parent->id;
+            $self->{processor}->{dois}->{eprint}->{$parent_id} = $self->get_doi_info( $repo, $parent, $eprint_doi_field );
 
-    # store status
-    $self->{processor}->{eprint}->{$eprint_id}->{datacite_data} = $datacite_doi->{data} if defined $datacite_doi;
+            if( $self->{processor}->{dois}->{eprint}->{$eprint_id}->{current_doi}->{url} eq $parent->uri )
+            {
+                $self->{processor}->{dois}->{eprint}->{$eprint_id}->{current_doi}->{redirects_to_parent} = 1;
+            }
 
+        }
+    }
+
+    ## Document DOI data
     # only check for existing document dois if this repository can coin doc dois and present landing pages for them
     if( $repo->get_conf( "datacitedoi", "document_dois" ) )
     {
         foreach my $doc ( $eprint->get_all_documents )
         {
             my $doc_id = $doc->id;
-            my $doc_doi = EPrints::DataCite::Utils::generate_doi( $repo, $doc );
-            my $datacite_doc_doi = EPrints::DataCite::Utils::datacite_doi_query( $repo, $doc_doi );
-            $self->{processor}->{document}->{$doc_id}->{datacite_data} = $datacite_doc_doi->{data} if defined $datacite_doc_doi;        
+            $self->{processor}->{dois}->{document}->{$doc_id} = $self->get_doi_info( $repo, $doc, $document_doi_field ); 
         }
     }
+
+    #print STDERR "DOIs....\n";
+    #print STDERR Dumper( $self->{processor}->{dois} );
 
     # DataCite title query to look for any DOIs that might already represent this record
     if( !$eprint->is_set( $eprint_doi_field ) )
     {
         $self->{processor}->{datacite_response} = EPrints::DataCite::Utils::datacite_api_query( $repo, "titles.title", $eprint->value( "title" ) );
     }
+}
+
+sub get_doi_info
+{
+    my( $self, $repo, $dataobj, $doi_field ) = @_;
+
+    my $data = {};
+
+    # get the DOI that would be generated for this eprint
+    my $generated_doi = EPrints::DataCite::Utils::generate_doi( $repo, $dataobj );
+
+    # Does the DOI that would be generated for this record already exist, either in draft form of some other form
+    my $datacite_data = EPrints::DataCite::Utils::datacite_doi_query( $repo, $generated_doi );
+
+    # store state
+    if( defined $datacite_data )
+    {
+        $data->{generated_doi} = $self->process_datacite_response( $repo, $dataobj, $datacite_data );
+    }
+    else
+    {
+         $data->{generated_doi}->{state} = "available"; # not an official DataCite state, used to say we can coin
+    }
+
+    # finally, store the generated DOI
+    $data->{generated_doi}->{doi} = $generated_doi;
+
+    # store the current DOI
+    if( $dataobj->is_set( $doi_field ) )
+    {        
+        my $current_doi = $dataobj->value( $doi_field );
+     
+        # check the DOI with DataCite       
+        my $datacite_data = EPrints::DataCite::Utils::datacite_doi_query( $repo, $current_doi );
+
+        # we have a response from DataCite for our stored DOI
+        if( defined $datacite_data )
+        {
+             $data->{current_doi} = $self->process_datacite_response( $repo, $dataobj, $datacite_data );
+        }
+        # no response from DataCite, but this DOI is the same as the one we would coin
+        elsif( lc( $current_doi ) eq lc( $generated_doi ) ) 
+        {
+            $data->{current_doi}->{state} = "available"; # not an official DataCite state, used to say we can coin
+        }
+        # no response and we don't know what to do with the DOI, probably not one of ours
+        else
+        {
+            $data->{current_doi}->{state} = "unavailable"; # not an official DataCite state, used to say nothing we can do
+        }
+
+        # finally, store the current DOI
+        $data->{current_doi}->{doi} = $current_doi;
+    }
+    return $data;
+}
+
+# gets all the data we might need from a datacite DOI query response
+sub process_datacite_response
+{
+    my( $self, $repo, $dataobj, $datacite_data ) = @_;
+
+    my $data = {};
+
+    # first get the state
+    my $state = $datacite_data->{data}->{attributes}->{state};
+    $data->{state} = $state;
+
+    if( $state eq "draft" )
+    {
+        $data->{created} = $datacite_data->{data}->{attributes}->{created};
+    }
+    elsif( $state eq "registered" || $state eq "findable" )
+    {
+        # get timestamps
+        $data->{registered} = $datacite_data->{data}->{attributes}->{registered};
+        $data->{updated} = $datacite_data->{data}->{attributes}->{updated};
+
+        # get the url
+        $data->{url} = $datacite_data->{data}->{attributes}->{url};   
+ 
+        # does it point to us?
+        if( $datacite_data->{data}->{attributes}->{url} eq $dataobj->uri )
+        {
+            $data->{redirects_to_dataobj} = 1;   
+        }
+
+        # can the repository update it?
+        my $username = $repo->get_conf( "datacitedoi", "user" );
+        if( lc( $datacite_data->{data}->{relationships}->{client}->{data}->{id} ) eq lc( $username ) )
+        {
+            $data->{repo_doi} = 1;   
+        }
+    }
+
+    return $data;
 }
 
 sub render
@@ -118,7 +230,6 @@ sub render
         }
     }
     
-
     return $frag;
 }
 
@@ -133,7 +244,7 @@ sub render_dataobj
     my $dataobj_id = $dataobj->id;
 
     my $doi_field = $self->{processor}->{$class.'_field'};
-    my $dataobj_doi = EPrints::DataCite::Utils::generate_doi( $repo, $dataobj );
+    my $generated_doi = EPrints::DataCite::Utils::generate_doi( $repo, $dataobj );
 
     my $datacite_data;
     $datacite_data = $self->{processor}->{$class}->{$dataobj_id}->{datacite_data} if exists $self->{processor}->{$class}->{$dataobj_id};
@@ -152,64 +263,38 @@ sub render_dataobj
     }
     elsif( $class eq "document" )
     {
-        $citation_div->appendChild( $self->render_document_citation ( $dataobj ) );
+        $citation_div->appendChild( $self->render_document_citation( $dataobj ) );
     }
 
-    # dataobj doi
-    my $doi_div = $info_div->appendChild( $repo->make_element( "div", class => "datacite_doi_info" ) );
-
-    my $dataobj_doi_div = $doi_div->appendChild( $repo->make_element( "div", class => $class."_doi" ) );
-
-    # if set display the current doi
-    if( $dataobj->is_set( $doi_field ) ) 
+    ## Potential problems
+    my $problems = $self->validate( $dataobj );
+    my $disable_updates = 0;
+    if( scalar @{$problems} > 0 )
     {
-        $dataobj_doi_div->appendChild( $self->html_phrase( "dataobj_doi", dataobj => $self->html_phrase( $class."_name" ), doi => $dataobj->render_value( $doi_field ) ) );
-    }
-    else # display the doi we could coin
-    {
-        # first show we have no doi for the current dataobj
-        $dataobj_doi_div->appendChild( $self->html_phrase( "dataobj_doi", dataobj => $self->html_phrase( $class."_name" ), doi => $self->html_phrase( "undefined" ) ) );
+        $disable_updates = 1;
 
-        # now show the doi available via datacite
-        my $datacite_doi_div = $doi_div->appendChild( $repo->make_element( "div", class => "datacite_doi" ) );
+        my $coin_problems = $repo->make_element( "div", class => "coin_problems" );
+        $coin_problems->appendChild( $self->html_phrase( "coin_doi:problems" ) );
 
-        # does this doi exist in datacite as a findable item, if so display as link
-        if( defined $datacite_data && $datacite_data->{attributes}->{state} eq "findable" )
+        my $coin_problems_list = $coin_problems->appendChild( $repo->make_element( "ul" ) );
+        foreach my $problem_xhtml ( @{$problems} )
         {
-            my $doi_link = $repo->make_element( "a", href => $dataobj_doi );
-            $doi_link->appendChild( $repo->make_text( $dataobj_doi ) );
-            $doi_div->appendChild( $self->html_phrase( "datacite_doi", doi => $doi_link ) );  
+            my $li = $coin_problems_list->appendChild( $repo->make_element( "li", class => "coin_warning" ) );
+            $li->appendChild( $problem_xhtml );            
         }
-        else # display uncoined doi as plain text
-        {
-            $doi_div->appendChild( $self->html_phrase( "datacite_doi", doi => $repo->make_text( $dataobj_doi ) ) );  
-        }
+        $div->appendChild( $coin_problems );
     }
 
-    ## status/options
-    # is it an external doi
-    if( $dataobj->is_set( $doi_field ) && lc $dataobj->value( $doi_field ) ne lc $dataobj_doi ) #
+    ## DOI options
+    if( $dataobj->is_set( $doi_field ) )
     {
-        # display message saying it's an external doi
-        $div->appendChild( $self->render_external( $dataobj ) );
+        $div->appendChild( $self->render_current_doi( $dataobj, $doi_field, $self->{processor}->{dois}->{$class}->{$dataobj_id}, $disable_updates ) );
     }
-    # no local record but this doi has been registered
-    elsif( !$dataobj->is_set( $doi_field ) && defined $datacite_data && ( $datacite_data->{attributes}->{state} eq "findable" || $datacite_data->{attributes}->{state} eq "registered" ) )
-    {
-        # show the URL the DOI points to and present option to claim it - this is an odd state, it implies we once coined it, but have since unset the doi field
-        $div->appendChild( $self->render_existing( $dataobj, $datacite_data ) );
-    }
-    # the doi may or may not be set, and we want show info/options for reserving and coining it
-    else
-    {
-        # show reserve status (reservable, reserved, findable)
-        unless( defined $datacite_data && ( $datacite_data->{attributes}->{state} eq "findable" || $datacite_data->{attributes}->{state} eq "registered" ) )
-        {
-           $div->appendChild( $self->render_reserve( $dataobj, $dataobj_doi, $datacite_data ) );
-        }
 
-        # show coin status (can't coin, newly coin, or update coin)
-        $div->appendChild( $self->render_coin( $dataobj, $dataobj_doi, $datacite_data ) );
+    if( !$dataobj->is_set( $doi_field ) || lc( $dataobj->value( $doi_field ) ) ne lc( $generated_doi ) )
+    {
+        $div->appendChild( $self->render_available_doi( $dataobj, $doi_field, $self->{processor}->{dois}->{$class}->{$dataobj_id}, $disable_updates ) );
+
     }
 
     # if we're an eprint we might be able to find potential dois in datacite
@@ -255,154 +340,253 @@ sub render_document_citation
     return $div;
 }
 
-
-sub render_external
+# Display information and options about the DOI currently associated with the record
+sub render_current_doi
 {
-    my( $self, $dataobj ) = @_;
-
-    my $repo = $self->{repository};
-  
-    my $div = $repo->make_element( "div", class => "external_doi" );
-    $div->appendChild( $self->html_phrase( "external_doi:title" ) );
-    $div->appendChild( $self->html_phrase( "external_doi:desc" ) );
-
-    return $div;
-}
-
-# shows a DOI already registered on datacite, what it links to, and an option to set it for this dataobj
-sub render_existing
-{
-    my( $self, $dataobj, $datacite_data ) = @_;
+    my( $self, $dataobj, $doi_field, $doi_info, $disable_updates ) = @_;
 
     my $repo = $self->{repository};
 
-    my $div = $repo->make_element( "div", class => "existing_doi datacite_section" );
+    my $div = $repo->make_element( "div", class => "current_doi datacite_section" );
  
-    # title
+    ## title
     my $title_div = $div->appendChild( $repo->make_element( "div", class => "datacite_title" ) );
-    $title_div->appendChild( $self->html_phrase( "existing_doi:title" ) );
+    $title_div->appendChild( $self->html_phrase( "current_doi:title" ) );
 
-    # show the link
-    my $link = $repo->make_element( "a", href => $datacite_data->{attributes}->{url}, target => "_blank" );
-    $link->appendChild( $repo->make_text( $datacite_data->{attributes}->{url} ) );
-    $div->appendChild( $self->html_phrase( "existing_doi:desc", url => $link ) );
+    my $doi_table = $div->appendChild( $repo->make_element( "div", class => "ep_table" ) );
 
-    # button to set the dataobj's doi field
-    my $claim_div = $div->appendChild( $repo->make_element( "div", class => "existing_doi:claim" ) );
-    my $form = $self->render_form;
- 
-    $form->appendChild( $repo->render_hidden_field( "claim_doi", $datacite_data->{attributes}->{doi} ) );
-    $form->appendChild( $repo->render_hidden_field( "claim_class", $dataobj->get_dataset_id ) );
-    $form->appendChild( $repo->render_hidden_field( "claim_dataobj", $dataobj->id ) );
+    ## DOI    
+    my $doi_row = $doi_table->appendChild( $repo->make_element( "div", class => "ep_table_row" ) );
+    my $doi_title = $doi_row->appendChild( $repo->make_element( "div", class => "ep_table_cell" ) );
+    $doi_title->appendChild( $self->html_phrase( "current_doi:doi" ) );
+    my $doi_value = $doi_row->appendChild( $repo->make_element( "div", class => "ep_table_cell" ) );
+    $doi_value->appendChild( $dataobj->render_value( $doi_field ) );
 
-    $form->appendChild( $self->{session}->render_action_buttons(
-        claimdoi => $self->phrase( "existing_dois:claim_doi" ),
-    ) );
-    $claim_div->appendChild( $form );
-   
-    return $div;
-}
+    ## Redirects to
+    my $redirect_row = $doi_table->appendChild( $repo->make_element( "div", class => "ep_table_row" ) );
+    my $redirect_title = $redirect_row->appendChild( $repo->make_element( "div", class => "ep_table_cell" ) );
+    $redirect_title->appendChild( $self->html_phrase( "current_doi:redirect" ) );
+    my $redirect_value = $redirect_row->appendChild( $repo->make_element( "div", class => "ep_table_cell" ) );
 
-# render a reserve button for when the doi doesn't exist anywhere on DataCite
-sub render_reserve
-{
-    my( $self, $dataobj, $doi, $datacite_data ) = @_;
- 
-    my $repo = $self->{repository};
-
-    my $div = $repo->make_element( "div", class => "reserve_doi datacite_section" );
-
-    # title
-    my $title_div = $div->appendChild( $repo->make_element( "div", class => "datacite_title" ) );
-    $title_div->appendChild( $self->html_phrase( "reserve_doi:title" ) );
-
-    # if the item has already been reserved show when it was reserved
-    if( defined $datacite_data && $datacite_data->{attributes}->{state} eq "draft" )
+    # Redirect options...
+    # Redirects to self
+    if( defined $doi_info->{current_doi}->{redirects_to_dataobj} )
     {
-        $div->appendChild( $self->html_phrase( "reserve_doi:reserved",
-            reserved => EPrints::Time::render_date( $repo, $datacite_data->{attributes}->{created} )
+        my $link = $repo->make_element( "a", href => $doi_info->{current_doi}->{url}, target => "_blank" );
+        $link->appendChild( $repo->make_text( $doi_info->{current_doi}->{url} ) );
+        $redirect_value->appendChild( $self->html_phrase( "current_doi:redirect:self", url => $link ) );
+    }
+    # Redirects to known DataCite URL
+    elsif( defined $doi_info->{current_doi}->{url} )
+    {
+        my $link = $repo->make_element( "a", href => $doi_info->{current_doi}->{url}, target => "_blank" );
+        $link->appendChild( $repo->make_text( $doi_info->{current_doi}->{url} ) );
+     
+        # Redirects to parent EPrint
+        if( defined $doi_info->{current_doi}->{redirects_to_parent} )
+        {
+            $redirect_value->appendChild( $self->html_phrase( "current_doi:redirect:parent", url => $link ) );
+        }
+        else
+        {             
+            $redirect_value->appendChild( $link );
+        }
+    }
+    else
+    {
+        $redirect_value->appendChild( $dataobj->render_value( $doi_field ) );
+    }
+
+    ## Update
+    unless( $disable_updates )
+    {
+        # We can update and it already points to us => Just update metadata
+        if( defined $doi_info->{current_doi}->{repo_doi} && defined $doi_info->{current_doi}->{redirects_to_dataobj} )
+        {
+            $doi_table->appendChild( $self->render_update_row(
+                $repo,
+                $dataobj,
+                "metadata_only",
+                $doi_info->{current_doi}->{doi},
+                $doi_info->{current_doi}->{registered},
+                $doi_info->{current_doi}->{updated},
+            ) );
+        }
+        # We can update, but it points elsewhere => Update and redirect to us
+        elsif( defined $doi_info->{current_doi}->{repo_doi} )
+        {
+            $doi_table->appendChild( $self->render_update_row(
+                $repo,
+                $dataobj,
+                "url",
+                $doi_info->{current_doi}->{doi},
+                $doi_info->{current_doi}->{registered},
+                $doi_info->{current_doi}->{updated},
+            ) );
+        }
+    }
+
+    ## if current DOI is the one we would generate, we might be able to reserve it or coin a new DOI
+    if( lc( $doi_info->{current_doi}->{doi} ) eq lc( $doi_info->{generated_doi}->{doi} ) )
+    {
+        ## Reserve
+        if( $doi_info->{current_doi}->{state} eq "available" || $doi_info->{current_doi}->{state} eq "draft" )
+        {
+            $doi_table->appendChild( $self->render_reserve_row(
+                $repo,
+                $doi_info->{current_doi},
+            ) );
+        }
+
+        unless( $disable_updates )
+        {
+            ## Coin
+            if( $doi_info->{current_doi}->{state} eq "available" || $doi_info->{current_doi}->{state} eq "draft" )
+            {
+                $doi_table->appendChild( $self->render_update_row( 
+                    $repo,
+                    $dataobj,
+                    "coin",
+                ) );
+            }
+        }
+    }
+    return $div;
+}
+
+# Display information and options about a DOI that is available/reserved for this record
+sub render_available_doi
+{
+    my( $self, $dataobj, $doi_field, $doi_info, $disable_updates ) = @_;
+    
+    my $repo = $self->{repository};
+
+    my $div = $repo->make_element( "div", class => "available_doi datacite_section" );
+ 
+    ## title
+    my $title_div = $div->appendChild( $repo->make_element( "div", class => "datacite_title" ) );
+    $title_div->appendChild( $self->html_phrase( "available_doi:title" ) );
+
+    ## show alert if dataobj already has a DOI (we don't want to coin an unnecessary one just because we can)
+    if( $dataobj->is_set( $doi_field ) )
+    {
+        my $alert_div = $div->appendChild( $repo->make_element( "div", class => "datacite_alert" ) );
+        $alert_div->appendChild( $self->html_phrase( "available_doi:alert" ) );
+    }
+
+    my $doi_table = $div->appendChild( $repo->make_element( "div", class => "ep_table" ) );
+
+    ## DOI    
+    my $doi_row = $doi_table->appendChild( $repo->make_element( "div", class => "ep_table_row" ) );
+    my $doi_title = $doi_row->appendChild( $repo->make_element( "div", class => "ep_table_cell" ) );
+    $doi_title->appendChild( $self->html_phrase( "available_doi:doi" ) );
+    my $doi_value = $doi_row->appendChild( $repo->make_element( "div", class => "ep_table_cell" ) );
+    $doi_value->appendChild( $repo->make_text( $doi_info->{generated_doi}->{doi} ) );
+
+    ## Reserve
+    if( $doi_info->{generated_doi}->{state} eq "available" || $doi_info->{generated_doi}->{state} eq "draft" )
+    {
+        $doi_table->appendChild( $self->render_reserve_row(
+            $repo,
+            $doi_info->{generated_doi},
         ) );
     }
-    else # show the option to reserve it
-    {
-        $div->appendChild( $self->html_phrase( "reserve_doi:desc" ) );
 
-        my $form = $self->render_form( "get" );
-        $form->appendChild( $repo->render_hidden_field( "reserve_doi", $doi ) );
+    unless( $disable_updates )
+    {
+        ## Coin
+        if( $doi_info->{generated_doi}->{state} eq "available" || $doi_info->{generated_doi}->{state} eq "draft" )
+        {
+            $doi_table->appendChild( $self->render_update_row( 
+                $repo,
+                $dataobj,
+                "coin",
+            ) );
+        }
+
+        ## Claim - for DOIs already coined
+        if( $doi_info->{generated_doi}->{state} eq "findable" || $doi_info->{generated_doi}->{state} eq "registered" )
+        {
+             $doi_table->appendChild( $self->render_update_row( 
+                $repo,
+                $dataobj,
+                "claim",
+                $doi_info->{generated_doi}->{doi},
+                $doi_info->{generated_doi}->{registered},
+                $doi_info->{generated_doi}->{updated},
+            ) );
+        }
+    }
+
+    return $div;
+}
+
+# Form and details for updating an existing DOI
+# $mode = coin              => Coin a brand new DOI
+# $mode = metadata_only     => Metadata update only
+# $mode = url               => Metadata and URL redirect updated
+# $mode = claim             => For DataObjs not associated with their registered/findable DOI
+sub render_update_row
+{
+    my( $self, $repo, $dataobj, $mode, $doi, $registered, $updated ) = @_;
+
+    my $update_row = $repo->make_element( "div", class => "ep_table_row" );
+    my $update_title = $update_row->appendChild( $repo->make_element( "div", class => "ep_table_cell" ) );
+    $update_title->appendChild( $self->html_phrase( "update_doi:$mode" ) );
+    my $update_value = $update_row->appendChild( $repo->make_element( "div", class => "ep_table_cell" ) );
+
+    # details on when the DOI was registered and updated
+    if( defined $registered && defined $updated )
+    {
+        $update_value->appendChild( $self->html_phrase( "update_doi:timestamps",
+            registered => EPrints::Time::render_date( $repo, $registered ),
+            updated => EPrints::Time::render_date( $repo, $updated ),
+        ) );
+    }   
+   
+    my $form = $update_value->appendChild( $self->render_form( "get" ) );
+    $form->appendChild( $repo->render_hidden_field( "coin_class", $dataobj->get_dataset_id ) );
+    $form->appendChild( $repo->render_hidden_field( "coin_dataobj", $dataobj->id ) );
+
+    # include the DOI if we're updating an existing DOI
+    $form->appendChild( $repo->render_hidden_field( "coin_doi", $doi ) ) if( defined $doi );
+
+    $form->appendChild( $repo->render_action_buttons(
+        _order => [ "coindoi" ],
+        coindoi => $repo->phrase( "Plugin/Screen/EPrint/Staff/CoinDOI:action:coin:".$mode.":title" ) )
+    );
+
+    return $update_row;
+}
+
+# Render Reserve options or details
+sub render_reserve_row
+{
+    my( $self, $repo, $doi_info ) = @_;
+
+    my $reserve_row = $repo->make_element( "div", class => "ep_table_row" );
+    my $reserve_title = $reserve_row->appendChild( $repo->make_element( "div", class => "ep_table_cell" ) );
+    $reserve_title->appendChild( $self->html_phrase( "reserve_doi:title" ) );
+    my $reserve_value = $reserve_row->appendChild( $repo->make_element( "div", class => "ep_table_cell" ) );
+
+    if( defined $doi_info->{created} )
+    {
+        $reserve_value->appendChild( $self->html_phrase( "reserve_doi:reserved",
+            reserved => EPrints::Time::render_date( $repo, $doi_info->{created} )
+        ) );
+    }
+    else
+    {
+        $reserve_value->appendChild( $self->html_phrase( "reserve_doi:desc" ) );
+
+        my $form = $reserve_value->appendChild( $self->render_form( "get" ) );
+        $form->appendChild( $repo->render_hidden_field( "reserve_doi", $doi_info->{doi} ) );
         $form->appendChild( $repo->render_action_buttons(
             _order => [ "reservedoi" ],
             reservedoi => $self->phrase( "action:reservedoi:title" ) )
         );
-        $div->appendChild( $form );
     }
-
-    return $div;
-}
-
-# render a coin button for assigning the metadata and url for this doi. If there are any issues that would prevent this, display these instead.
-sub render_coin
-{
-    my( $self, $dataobj, $doi, $datacite_data ) = @_;
-
-    my $repo = $self->{repository};
-
-    my $div = $repo->make_element( "div", class => "coin_doi datacite_section" );
-
-    # title
-    my $title_div = $div->appendChild( $repo->make_element( "div", class => "datacite_title" ) );
-    $title_div->appendChild( $self->html_phrase( "coin_doi:title" ) );
-
-    # first show any warnings
-    my $problems = $self->validate( $dataobj );
-    if( scalar @{$problems} > 0 )
-    {
-        my $coin_problems = $repo->make_element( "div", class => "coin_problems" );
-        $coin_problems->appendChild( $self->html_phrase( "coin_doi:problems" ) );
-
-        my $coin_problems_list = $coin_problems->appendChild( $repo->make_element( "ul" ) );
-        foreach my $problem_xhtml ( @{$problems} )
-        {
-            my $li = $coin_problems_list->appendChild( $repo->make_element( "li", class => "coin_warning" ) );
-            $li->appendChild( $problem_xhtml );            
-        }
-        $div->appendChild( $coin_problems );
-    }
-    # if doi is already registered and/or findable we can update it...
-    elsif( defined $datacite_data && ( $datacite_data->{attributes}->{state} eq "registered" || $datacite_data->{attributes}->{state} eq "findable" ) )
-    {
-        my $update_doi = $repo->make_element( "div", class => "update_doi" );
-        $update_doi->appendChild( $self->html_phrase( "coin_doi:update",
-            registered => EPrints::Time::render_date( $repo, $datacite_data->{attributes}->{registered} ),
-            updated => EPrints::Time::render_date( $repo, $datacite_data->{attributes}->{updated} ),
-        ) );
-
-        my $form = $self->render_form( "get" );
-        $form->appendChild( $repo->render_hidden_field( "coin_class", $dataobj->get_dataset_id ) );
-        $form->appendChild( $repo->render_hidden_field( "coin_dataobj", $dataobj->id ) );
-        $form->appendChild( $repo->render_action_buttons(
-            _order => [ "coindoi" ],
-            coindoi => $repo->phrase( "Plugin/Screen/EPrint/Staff/CoinDOI:action:updatedoi:title" ) )
-        );
-        $update_doi->appendChild( $form );
-        $div->appendChild( $update_doi );
-    }
-    else # it's a free doi and there's no problems!
-    {
-        my $new_doi = $repo->make_element( "div", class => "new_doi" );
-        $new_doi->appendChild( $self->html_phrase( "coin_doi:new" ) );
-
-        my $form = $self->render_form( "get" );
-        $form->appendChild( $repo->render_hidden_field( "coin_class", $dataobj->get_dataset_id ) );
-        $form->appendChild( $repo->render_hidden_field( "coin_dataobj", $dataobj->id ) );
-        $form->appendChild( $repo->render_action_buttons(
-            _order => [ "coindoi" ],
-            coindoi => $repo->phrase( "Plugin/Screen/EPrint/Staff/CoinDOI:action:coindoi:title" ) )
-        );
-        $new_doi->appendChild( $form );
-        $div->appendChild( $new_doi );
-    }
-
-    return $div;
+    return $reserve_row;
 }
 
 # show the results of looking up this eprint's title on datacite
@@ -528,6 +712,10 @@ sub action_coindoi
     my $class = $repo->param( "coin_class" );
     my $dataset = $repo->dataset( $class );
     my $dataobj = $dataset->dataobj( $repo->param( "coin_dataobj" ) );
+
+    # we might be updating an existing DOI, so get that if available
+    my $doi = $repo->param( "coin_doi" );
+
     return undef if ( !defined $dataobj );
 
     my $problems = $self->validate( $dataobj ); # double check for any problems
@@ -548,7 +736,7 @@ sub action_coindoi
         $repo->dataset( "event_queue" )->create_dataobj({
             pluginid => "Event::DataCiteEvent",
             action => "datacite_doi",
-            params => [ $dataobj->internal_uri ], # will a document have this???
+            params => [ $dataobj->internal_uri, $doi ], # will a document have this???
         }); 
 
         $self->add_result_message( 1 );
@@ -593,7 +781,6 @@ sub action_claimdoi
     $dataobj->set_value( $doi_field, $doi );
     $dataobj->commit();
 }    
-
 
 sub add_result_message
 {

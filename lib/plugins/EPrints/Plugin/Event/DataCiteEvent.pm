@@ -16,7 +16,7 @@ eval "use WWW::Curl::Easy";
 
 sub datacite_doi
 {
-    my( $self, $dataobj) = @_;
+    my( $self, $dataobj, $doi ) = @_;
 
     my $repository = $self->repository();
 
@@ -48,7 +48,9 @@ sub datacite_doi
         return EPrints::Const::HTTP_INTERNAL_SERVER_ERROR;
     }
 
-    my $thisdoi = EPrints::DataCite::Utils::generate_doi( $repository, $dataobj );
+    # if we're passed a DOI, use that one, otherwise use the generated one
+    my $thisdoi = $doi;
+    $thisdoi = EPrints::DataCite::Utils::generate_doi( $repository, $dataobj ) unless defined $doi;
 
     # coin_doi may return an event error code if no prefix present assume this is the case
     my $prefix = $repository->get_conf( "datacitedoi", "prefix");
@@ -93,6 +95,7 @@ sub datacite_doi
         $repo_url.= $dataobj->internal_uri;
     }
     my $doi_reg = "doi=$thisdoi\nurl=".$repo_url;
+
     # Test if we want to be using curl; if we don't run the 'old' LWP code
     if( defined $repository->get_conf( "datacitedoi", "get_curl" ) )
     {

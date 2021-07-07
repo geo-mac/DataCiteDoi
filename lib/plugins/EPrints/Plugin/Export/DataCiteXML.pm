@@ -51,11 +51,8 @@ sub output_dataobj
 
     #RM We pass in the DOI from Event::DataCite... or from --args on the cmd line
 
-    # AH my $thisdoi = $opts{doi}; always returns undefined, even when DOI exists
-    # Ideally coining should NOT happen in this script but opts{doi} should have it
-    # but is always blank
-    
-    my $thisdoi = $dataobj->get_value( "id_number" );
+    my $thisdoi = $opts{doi};
+    $thisdoi = $dataobj->get_value( "id_number" ) unless defined $opts{doi};
 
     #RM coin a DOI if either
         # - not come via event or
