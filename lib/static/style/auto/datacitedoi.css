@@ -1,10 +1,17 @@
-/*** DataCite Screen ***/
-
-.datacite_title
-{
-    font-weight: bold;
+/*** Generic EPrints (just in case it's not already present) ***/
+.ep_table{
+    display: table;
 }
 
+.ep_table_row{
+    display: table-row;
+}
+
+.ep_table_cell{
+    display: table-cell;
+}
+
+/*** DataCite Screen ***/
 .datacite_object
 {
     padding: 10px;
@@ -15,6 +22,18 @@
 .datacite_section
 {
     margin-bottom: 10px;
+}
+
+.datacite_section .ep_table_row .ep_table_cell:first-child
+{
+    padding-right: 5px;
+    font-weight: bold;
+    text-align: right;
+}
+
+.datacite_section .ep_table_row .ep_table_cell
+{
+    padding-bottom: 10px;
 }
 
 li.coin_warning

@@ -350,7 +350,7 @@ sub render_current_doi
     my $div = $repo->make_element( "div", class => "current_doi datacite_section" );
  
     ## title
-    my $title_div = $div->appendChild( $repo->make_element( "div", class => "datacite_title" ) );
+    my $title_div = $div->appendChild( $repo->make_element( "h2", class => "datacite_title" ) );
     $title_div->appendChild( $self->html_phrase( "current_doi:title" ) );
 
     my $doi_table = $div->appendChild( $repo->make_element( "div", class => "ep_table" ) );
@@ -464,7 +464,7 @@ sub render_available_doi
     my $div = $repo->make_element( "div", class => "available_doi datacite_section" );
  
     ## title
-    my $title_div = $div->appendChild( $repo->make_element( "div", class => "datacite_title" ) );
+    my $title_div = $div->appendChild( $repo->make_element( "h2", class => "datacite_title" ) );
     $title_div->appendChild( $self->html_phrase( "available_doi:title" ) );
 
     ## show alert if dataobj already has a DOI (we don't want to coin an unnecessary one just because we can)
