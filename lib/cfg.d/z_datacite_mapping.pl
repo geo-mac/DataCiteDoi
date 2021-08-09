@@ -23,21 +23,35 @@ $c->{datacite_mapping_type} = sub {
 
     my($xml, $dataobj, $repo) = @_;
 
-    my $resourceTypeGeneral_opts = [ qw/ 
+    my $resourceTypeGeneral_opts = [ qw/
         Audiovisual
+        Book
+        BookChapter
         Collection
+        ComputationalNotebook
+        ConferencePaper
+        ConferenceProceeding
+        DataPaper
         Dataset
+        Dissertation
         Event
         Image
         InteractiveResource
+        Journal
+        JournalArticle
         Model
+        OutputManagementPlan
+        PeerReview
         PhysicalObject
+        Preprint
+        Report
         Service
         Software
         Sound
+        Standard
         Text
         Workflow
-        Other
+        Other 
     /];
 
     my $resourceType = undef;
