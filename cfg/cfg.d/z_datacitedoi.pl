@@ -57,13 +57,13 @@ $c->{datacitedoi}{xmlns} = "http://datacite.org/schema/kernel-4";
 $c->{datacitedoi}{schemaLocation} = $c->{datacitedoi}{xmlns}." http://schema.datacite.org/meta/kernel-4/metadata.xsd";
 
 # Need to map eprint type (article, dataset etc) to DOI ResourceType
-# Controlled list http://schema.datacite.org/meta/kernel-4.1/doc/DataCite-MetadataKernel_v4.1.pdf
+# Controlled list https://schema.datacite.org/meta/kernel-4.4/doc/DataCite-MetadataKernel_v4.4.pdf
 # where v is the ResourceType and a is the resourceTypeGeneral
 #$c->{datacitedoi}{typemap}{book_section} = {v=>'BookSection',a=>'Text'};
-$c->{datacitedoi}{typemap}{article} = {v=>'Article',a=>'Text'};
+$c->{datacitedoi}{typemap}{article} = {v=>'Article',a=>'JournalArticle'};
 $c->{datacitedoi}{typemap}{monograph} = {v=>'Monograph',a=>'Text'};
-$c->{datacitedoi}{typemap}{thesis} = {v=>'Thesis',a=>'Text'};
-$c->{datacitedoi}{typemap}{book} = {v=>'Book',a=>'Text'};
+$c->{datacitedoi}{typemap}{thesis} = {v=>'Thesis',a=>'Dissertation'};
+$c->{datacitedoi}{typemap}{book} = {v=>'Book',a=>'Book'};
 $c->{datacitedoi}{typemap}{patent} = {v=>'Patent',a=>'Text'};
 $c->{datacitedoi}{typemap}{artefact} = {v=>'Artefact',a=>'PhysicalObject'};
 $c->{datacitedoi}{typemap}{exhibition} = {v=>'Exhibition',a=>'InteractiveResource'};
@@ -74,7 +74,7 @@ $c->{datacitedoi}{typemap}{video} = {v=>'Video',a=>'Audiovisual'};
 $c->{datacitedoi}{typemap}{audio} = {v=>'Audio',a=>'Sound'};
 $c->{datacitedoi}{typemap}{dataset} = {v=>'Dataset',a=>'Dataset'};
 $c->{datacitedoi}{typemap}{experiment} = {v=>'Experiment',a=>'Text'};
-$c->{datacitedoi}{typemap}{teaching_resource} = {v=>'TeachingResource',a=>'InteractiveResource'};
+$c->{datacitedoi}{typemap}{teaching_resource} = {v=>'Teaching Resource',a=>'InteractiveResource'};
 $c->{datacitedoi}{typemap}{other} = {v=>'Misc',a=>'Collection'};
 #For use with recollect
 $c->{datacitedoi}{typemap}{data_collection} = {v=>'Dataset',a=>'Dataset'};
