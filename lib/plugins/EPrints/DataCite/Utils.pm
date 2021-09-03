@@ -15,7 +15,7 @@ sub generate_doi
     
     if( $dataobj->get_dataset_id eq "document" )
     {
-        $id = $dataobj->get_eprint->id . $id;
+        $id = $dataobj->get_eprint->id . "." . $id;
     }
 
     $id  = sprintf( "%0" . $z_pad . "d" , $id );
