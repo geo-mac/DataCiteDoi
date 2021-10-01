@@ -682,7 +682,7 @@ sub allow_coindoi
  
     my $repository = $self->{repository};
  
-    #TODO a version that works for documents too
+    # TODO a version that works for documents too
     my $dataobj = $self->{processor}->{eprint}; 
  
     if (defined $repository->get_conf( "datacitedoi", "typesallowed")) {

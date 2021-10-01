@@ -568,14 +568,68 @@ $c->{datacite_mapping_rights_from_docs} = sub {
     return $rightsList;
 };
 
-$c->{datacite_mapping_repo_link} = sub {
 
-    my($xml, $entry, $dataobj) = @_;
+##################################################
+# relatedIdentifier relates eprints to previous versions, or - if available - to eprints
+# in another repository
+# https://schema.datacite.org/meta/kernel-4.3/doc/DataCite-MetadataKernel_v4.3.pdf
+
+$c->{datacite_mapping_relatedIdentifiers} = sub {
+
+    my( $xml, $dataobj, $repo ) = @_;
 
     my $relatedIdentifiers = undef;
+
+    # we're only concerned with eprint objects here
+    my $class = $dataobj->get_dataset_id;
+    return unless $class eq "eprint";
+
+    # get dataset and relevant field
+    my $ds = $dataobj->dataset;
+    my $doi_field = $repo->get_conf( "datacitedoi", "eprintdoifield" );
+
+    # are we a later version of something
+    if( $dataobj->is_set( "succeeds" ) )
+    {
+        # relation type
+        my $relationType = "IsVersionOf";
+ 
+        # get our parent      
+        my $parent = $ds->dataobj( $dataobj->value( "succeeds" ) );
+
+        my $relatedIdentifier = EPrints::DataCite::Utils::create_related_identifier( $repo, $xml, $parent, $relationType );
+        if( defined $relatedIdentifier )
+        {
+            $relatedIdentifiers = $xml->create_element( "relatedIdentifiers" ) if (!defined $relatedIdentifiers);
+            $relatedIdentifiers->appendChild( $relatedIdentifier );
+        }
+    }
+    
+    # are we an early version of something
+    my $succeeds = $ds->field( "succeeds" );
+    my $children =  $dataobj->later_in_thread( $succeeds );
+    if( $children->count > 0 )
+    {   
+        $children->map(sub
+        {
+            my( undef, undef, $child ) = @_;
+          
+            # relation type
+            my $relationType = "HasVersion";
+
+            my $relatedIdentifier = EPrints::DataCite::Utils::create_related_identifier( $repo, $xml, $child, $relationType );
+            if( defined $relatedIdentifier )
+            {
+                $relatedIdentifiers = $xml->create_element( "relatedIdentifiers" ) if (!defined $relatedIdentifiers);
+                $relatedIdentifiers->appendChild( $relatedIdentifier );
+            }
+        });
+    }
+    
+    # RepoLink
     #default codein plugin (for reference)
     #    my $theurls = $dataobj->get_value( "repo_link" );
-    #    my $relatedIdentifiers = $xml->create_element( "relatedIdentifiers" );
+    #    my $relatedIdentifiers = $xml->create_element( "relatedIdentifiers" ) if (!defined $relatedIdentifiers);
     #    foreach my $theurl ( @$theurls ) {
     #        my $linkk = $theurl->{link};
     #        if (!$linkk eq ''){

@@ -153,4 +153,50 @@ sub datacite_api_query
     }
 }
 
+# when given a parent or child eprint, get the information need to construct the relatedIdentifier xml
+# we'll prioritise DOI for the identifier type, but may want a hierarchy of other options later
+sub create_related_identifier
+{
+    my( $repo, $xml, $eprint, $relationType ) = @_;
+
+    my $doi_field = $repo->get_conf( "datacitedoi", "eprintdoifield" );
+
+    # initialise identifier value and type
+    my $idValue = undef;
+    my $idType = undef;
+
+    # does this parent have a DOI?
+    if( $eprint->is_set( $doi_field ) )
+    {
+        # get it and check it with DataCite
+        my $eprint_doi = $eprint->value( $doi_field );
+        my $datacite_data = EPrints::DataCite::Utils::datacite_doi_query( $repo, $eprint_doi );
+        if( defined $datacite_data )
+        {
+            $idValue = $eprint_doi;
+            $idType = "DOI";
+        }
+    }
+
+    if( !defined $idValue )
+    {
+        # we'll settle for the eprint uri for now - TODO expand this to look at ISSN, ISBN, etc. see https://schema.datacite.org/meta/kernel-4.4/doc/DataCite-MetadataKernel_v4.4.pdf for possible options
+        if( $eprint->value( "eprint_status" ) eq "archive" )
+        {
+            $idValue = $eprint->uri;
+            $idType = "URL";
+        }
+    }
+
+    # only be creating XML if we have all the values we need
+    if( defined $idValue && defined $idType )
+    {
+        return $xml->create_data_element( "relatedIdentifier", $idValue, relatedIdentifierType => $idType, relationType => $relationType );
+    }
+    else
+    {
+        return undef;
+    }
+}
+
 1;
