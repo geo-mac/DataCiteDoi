@@ -2,8 +2,8 @@
 $c->{plugins}{"Export::DataCiteXML"}{params}{disable} = 0;
 $c->{plugins}{"Event::DataCiteEvent"}{params}{disable} = 0;
 
-# flag to indicate if this repository is able to coin dois for documents
-$c->{datacitedoi}{document_dois} = 1;
+# flag to indicate if this repository is able to coin dois for documents (off by default)
+$c->{datacitedoi}{document_dois} = 0;
 
 # which fields to use for the doi
 $c->{datacitedoi}{eprintdoifield} = "id_number";
@@ -232,4 +232,18 @@ $c->add_dataset_trigger( "document", EP_TRIGGER_REMOVED, \&remove_doi );
             params => [$datasetid, $dataobj->id, $doi],
         });
     }
+};
+
+$c->{document_landing_page} = sub
+{
+    my( $document, $repo ) = @_;
+
+    return $repo->get_conf( "base_url" ) . $repo->call( "document_internal_landing_page", $document, $repo );
+};
+
+$c->{document_internal_landing_page} = sub
+{
+    my( $document, $repo ) = @_;
+
+    return "/document/" . $document->id;
 };

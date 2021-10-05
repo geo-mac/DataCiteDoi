@@ -12,15 +12,15 @@ sub generate_doi
     my $z_pad = $repository->get_conf( "datacitedoi", "zero_padding") || 0;
 
     my $id = $dataobj->id;
-    
+    $id  = sprintf( "%0" . $z_pad . "d" , $id );
+   
     if( $dataobj->get_dataset_id eq "document" )
     {
-        $id = $dataobj->get_eprint->id . "." . $id;
+        my $eprintid = $dataobj->get_eprint->id;
+        $eprintid = sprintf( "%0" . $z_pad . "d" , $eprintid );
+        $id = "$eprintid.$id";
     }
 
-    $id  = sprintf( "%0" . $z_pad . "d" , $id );
-
-    # Check for custom delimiters
     my( $delim1, $delim2 ) = @{$repository->get_conf( "datacitedoi", "delimiters" )};
 
     # default to slash

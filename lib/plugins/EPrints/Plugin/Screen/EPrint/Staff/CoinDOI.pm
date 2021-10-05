@@ -193,7 +193,14 @@ sub process_datacite_response
         $data->{url} = $datacite_data->{data}->{attributes}->{url};   
  
         # does it point to us?
-        if( $datacite_data->{data}->{attributes}->{url} eq $dataobj->uri )
+        my $class = $dataobj->get_dataset_id;
+        my $dataobj_uri = $dataobj->uri;
+        if( $repo->can_call( $class."_landing_page" ) ) # landing page url override for documents (or eprints if needed)
+        {
+            $dataobj_uri = $repo->call( $class."_landing_page", $dataobj, $repo );
+        }
+
+        if( $datacite_data->{data}->{attributes}->{url} eq $dataobj_uri )
         {
             $data->{redirects_to_dataobj} = 1;   
         }

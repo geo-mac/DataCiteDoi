@@ -39,7 +39,14 @@ sub datacite_doi
     if( $class eq "document" )
     {
         $eprint = $dataobj->get_eprint;
+
+        if( !$repository->get_conf( "datacitedoi", "document_dois" ) )
+        {
+            $repository->log("Document DOI functionality not available on this repository");
+            return EPrints::Const::HTTP_INTERNAL_SERVER_ERROR;                           
+        }
     }
+
     my $shoulddoi = $repository->get_conf( "datacitedoi", "eprintstatus",  $eprint->value( "eprint_status" ) );
     # Check Doi Status
     if( !$shoulddoi )
@@ -81,20 +88,35 @@ sub datacite_doi
 
     if( $response_code !~ /20(1|0)/ )
     {
-        $repository->log( "Metadata response from datacite api when submitting $class $dataobj->id: $response_code: $response_content" );
+        $repository->log( "Metadata response from datacite api when submitting $class " . $dataobj->id . ": $response_code: $response_content" );
         $repository->log( "XML submitted was:\n$xml" );
         return EPrints::Const::HTTP_INTERNAL_SERVER_ERROR;
     }
-    
+
     # register doi
-    my $repo_url =$dataobj->uri();
+    my $repo_url;
+    if( $repository->can_call( $class."_landing_page" ) )
+    {
+        $repo_url = $repository->call( $class."_landing_page", $dataobj, $repository );
+    }
+    else
+    {
+        $repo_url = $dataobj->uri();
+    }
     # RM special override to allow testing from "wrong" domain
     if( defined $repository->get_conf( "datacitedoi", "override_url" ) )
     {
         $repo_url = $repository->get_conf( "datacitedoi", "override_url" );
-        $repo_url.= $dataobj->internal_uri;
+        if( $repository->can_call( $class."_internal_landing_page" ) )
+        {
+            $repo_url = $repository->call( $class."_internal_landing_page", $dataobj, $repository );
+        }
+        else
+        {
+            $repo_url .= $dataobj->internal_uri;
+        }
     }
-    my $doi_reg = "doi=$thisdoi\nurl=".$repo_url;
+    my $doi_reg = "doi=$thisdoi\nurl=".$repo_url; 
 
     # Test if we want to be using curl; if we don't run the 'old' LWP code
     if( defined $repository->get_conf( "datacitedoi", "get_curl" ) )

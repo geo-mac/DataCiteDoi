@@ -224,7 +224,7 @@ $c->{datacite_mapping_contributors} = sub {
 # titles this is derived from the eprint.title
 # https://schema.datacite.org/meta/kernel-4.0/metadata.xsd#titles
 
-$c->{datacite_mapping_title} = sub {
+$c->{datacite_eprint_mapping_title} = sub {
     my($xml, $dataobj, $repo) = @_;
 
     my $titles = undef;
@@ -343,7 +343,7 @@ $c->{datacite_mapping_dates} = sub {
 #
 #####################
 
-$c->{datacite_mapping_abstract} = sub {
+$c->{datacite_eprint_mapping_abstract} = sub {
     my($xml, $dataobj, $repo) = @_;
 
     my $descriptions = undef;
@@ -574,7 +574,7 @@ $c->{datacite_mapping_rights_from_docs} = sub {
 # in another repository
 # https://schema.datacite.org/meta/kernel-4.3/doc/DataCite-MetadataKernel_v4.3.pdf
 
-$c->{datacite_mapping_relatedIdentifiers} = sub {
+$c->{datacite_eprint_mapping_relatedIdentifiers} = sub {
 
     my( $xml, $dataobj, $repo ) = @_;
 
@@ -643,12 +643,37 @@ $c->{datacite_mapping_relatedIdentifiers} = sub {
 };
 
 ##################################################
+# titles this is derived from the eprint.title
+# https://schema.datacite.org/meta/kernel-4.0/metadata.xsd#titles
+
+$c->{datacite_document_mapping_title} = sub {
+    my( $xml, $dataobj, $eprint, $repo ) = @_;
+    my $titles = undef;
+    if( $eprint->exists_and_set( "title" ) )
+    {
+        my $title = $eprint->render_value( "title" );
+
+        # append content if available
+        if( $dataobj->exists_and_set( "content" ) )
+        {
+            $title .= " (" . $dataobj->render_value( "content" ) . ")";
+        }
+
+        $titles = $xml->create_element( "titles" );
+        $titles->appendChild( $xml->create_data_element( "title", $title, 
+                "xml:lang" => $repo->get_language->get_id ) );
+    }
+    return $titles
+};
+
+
+##################################################
 # language this is derived from the document language field 
 # https://schema.datacite.org/meta/kernel-4.3/doc/DataCite-MetadataKernel_v4.3.pdf
 
 $c->{datacite_document_mapping_language} = sub {
 
-    my( $xml, $dataobj, $repo ) = @_;
+    my( $xml, $dataobj, $eprint, $repo ) = @_;
 
     my $language = undef;
     if( $dataobj->exists_and_set( "language" ) )
@@ -665,11 +690,10 @@ $c->{datacite_document_mapping_language} = sub {
 
 $c->{datacite_document_mapping_relatedIdentifiers} = sub {
 
-    my( $xml, $dataobj, $repo ) = @_;
+    my( $xml, $dataobj, $eprint, $repo ) = @_;
 
     my $relatedIdentifiers = undef;
 
-    my $eprint = $dataobj->get_eprint;
     if( defined $eprint )
     {   
         $relatedIdentifiers = $xml->create_element( "relatedIdentifiers" );
@@ -685,7 +709,7 @@ $c->{datacite_document_mapping_relatedIdentifiers} = sub {
 
 $c->{datacite_document_mapping_size} = sub {
 
-    my( $xml, $dataobj, $repo ) = @_;
+    my( $xml, $dataobj, $eprint, $repo ) = @_;
 
     my $sizes = undef;
 
@@ -708,7 +732,7 @@ $c->{datacite_document_mapping_size} = sub {
 
 $c->{datacite_document_mapping_format} = sub {
 
-    my( $xml, $dataobj, $repo ) = @_;
+    my( $xml, $dataobj, $eprint, $repo ) = @_;
 
     my $formats = undef;
 
@@ -728,15 +752,19 @@ $c->{datacite_document_mapping_format} = sub {
 
 $c->{datacite_document_mapping_descriptions} = sub {
 
-    my( $xml, $dataobj, $repo ) = @_;
+    my( $xml, $dataobj, $eprint, $repo ) = @_;
 
     my $descriptions = undef;
 
+    # first get the eprint description content
+    $descriptions = $repo->call( "datacite_eprint_mapping_abstract", $xml, $eprint, $repo );
+
     if( $dataobj->is_set( "content" ) )
     {   
-        $descriptions = $xml->create_element( "descriptions" );
-        my $description = $descriptions->appendChild( $xml->create_element( "description" ) );      
-        $descriptions->appendChild( $dataobj->render_value( "content" ) );   
+        $descriptions = $xml->create_element( "descriptions" ) unless defined $descriptions;
+        $descriptions->appendChild( $xml->create_data_element( "description", $dataobj->render_value( "content" ),
+            "xml:lang"=>$repo->get_language->get_id, 
+            descriptionType =>"Other" ) );
     }
     
     return $descriptions;

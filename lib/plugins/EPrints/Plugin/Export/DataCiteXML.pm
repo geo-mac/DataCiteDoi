@@ -81,12 +81,22 @@ sub output_dataobj
                 $entry->appendChild( $mapped_element ) if( defined $mapped_element );
             }
         }
+        # Some mapping functions should only be called for eprints
+        elsif( index( $mapping_fn, 'datacite_eprint_mapping_' ) == 0 && $class eq "eprint" )
+        {
+            if( $repo->can_call( $mapping_fn ) )
+            {
+                my $mapped_element = $repo->call( $mapping_fn, $xml, $eprint, $repo );
+                $entry->appendChild( $mapped_element ) if( defined $mapped_element );
+            }
+        }
+
         # We also have some document specific mapping functions, used only when coining a document DOI
         elsif( index ( $mapping_fn, 'datacite_document_mapping_' ) == 0 && $class eq "document" )
         {
             if( $repo->can_call( $mapping_fn ) )
             {
-                my $mapped_element = $repo->call( $mapping_fn, $xml, $dataobj, $repo );
+                my $mapped_element = $repo->call( $mapping_fn, $xml, $dataobj, $eprint, $repo );
                 $entry->appendChild( $mapped_element ) if( defined $mapped_element );
             }
         }
