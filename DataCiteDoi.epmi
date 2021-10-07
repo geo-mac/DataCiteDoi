@@ -1,17 +1,113 @@
 <?xml version='1.0' encoding='utf-8'?>
-<epm xmlns='http://eprints.org/ep2/data/2.0' id='http://template.ulcc.ac.uk/id/epm/DataCiteDoi'>
+<epm xmlns='http://eprints.org/ep2/data/2.0' id='http://localhost:8080/id/epm/DataCiteDoi'>
   <epmid>DataCiteDoi</epmid>
-  <uri>http://192.168.23.142/id/epm/DataCiteDoi</uri>
+  <uri>http://template.ulcc.ac.uk/id/epm/DataCiteDoi</uri>
   <documents>
     <document>
       <files>
         <file>
           <datasetid>document</datasetid>
+          <filename>cfg.d/z_datacite_mapping.pl</filename>
+          <mime_type>text/plain</mime_type>
+          <hash>71d2465aa0115f11b0cc2e41a35acec6</hash>
+          <hash_type>MD5</hash_type>
+          <filesize>32067</filesize>
+        </file>
+        <file>
+          <datasetid>document</datasetid>
+          <filename>cfg.d/z_datacite_record.pl</filename>
+          <mime_type>text/plain</mime_type>
+          <hash>7507c65dc4342d19617b423439635619</hash>
+          <hash_type>MD5</hash_type>
+          <filesize>1852</filesize>
+        </file>
+        <file>
+          <datasetid>document</datasetid>
+          <filename>citations/datacite/default.xml</filename>
+          <mime_type>application/xml</mime_type>
+          <hash>f4b3a97216a0c1b72af0bf49157a450c</hash>
+          <hash_type>MD5</hash_type>
+          <filesize>186</filesize>
+        </file>
+        <file>
+          <datasetid>document</datasetid>
+          <filename>citations/datacite/summary_page.xml</filename>
+          <mime_type>application/xml</mime_type>
+          <hash>5b1758a07153df4dc2ce4068a5c0ecee</hash>
+          <hash_type>MD5</hash_type>
+          <filesize>390</filesize>
+        </file>
+        <file>
+          <datasetid>document</datasetid>
+          <filename>citations/datacite/summary_title.xml</filename>
+          <mime_type>application/xml</mime_type>
+          <hash>271d94f7db1a0d9ad728d4765f371c07</hash>
+          <hash_type>MD5</hash_type>
+          <filesize>216</filesize>
+        </file>
+        <file>
+          <datasetid>document</datasetid>
+          <filename>citations/document/datacite_tombstone.xml</filename>
+          <mime_type>application/xml</mime_type>
+          <hash>1ecd66ca20a28ec874d8d16a47479445</hash>
+          <hash_type>MD5</hash_type>
+          <filesize>721</filesize>
+        </file>
+        <file>
+          <datasetid>document</datasetid>
+          <filename>citations/eprint/datacite_tombstone.xml</filename>
+          <mime_type>application/xml</mime_type>
+          <hash>5483ffb20142aee276d37efdb23ca9e4</hash>
+          <hash_type>MD5</hash_type>
+          <filesize>350</filesize>
+        </file>
+        <file>
+          <datasetid>document</datasetid>
+          <filename>epm/DataCiteDoi/cfg/cfg.d/z_datacitedoi.pl</filename>
+          <mime_type>text/plain</mime_type>
+          <hash>c03bdb951e7cf1a80d46a3931d9ae0ac</hash>
+          <hash_type>MD5</hash_type>
+          <filesize>11359</filesize>
+        </file>
+        <file>
+          <datasetid>document</datasetid>
           <filename>lang/en/phrases/coinDOI.xml</filename>
           <mime_type>application/xml</mime_type>
-          <hash>0df177ef1ffd08206156f49996b70c92</hash>
+          <hash>9a23def037e1424eb7014a3802f6b8bf</hash>
           <hash_type>MD5</hash_type>
-          <filesize>13340</filesize>
+          <filesize>17819</filesize>
+        </file>
+        <file>
+          <datasetid>document</datasetid>
+          <filename>plugins/EPrints/DataCite/Utils.pm</filename>
+          <mime_type>text/plain</mime_type>
+          <hash>17f3588d7f2f77073174aa8a4ff49176</hash>
+          <hash_type>MD5</hash_type>
+          <filesize>5627</filesize>
+        </file>
+        <file>
+          <datasetid>document</datasetid>
+          <filename>plugins/EPrints/Plugin/Event/DataCiteEvent.pm</filename>
+          <mime_type>text/plain</mime_type>
+          <hash>84cf90855be4d9aa2fdeeec7c8b1e2fe</hash>
+          <hash_type>MD5</hash_type>
+          <filesize>15850</filesize>
+        </file>
+        <file>
+          <datasetid>document</datasetid>
+          <filename>plugins/EPrints/Plugin/Export/DataCiteXML.pm</filename>
+          <mime_type>text/plain</mime_type>
+          <hash>a5007e2e1b5fde7338c9f11b9a8e5448</hash>
+          <hash_type>MD5</hash_type>
+          <filesize>4030</filesize>
+        </file>
+        <file>
+          <datasetid>document</datasetid>
+          <filename>plugins/EPrints/Plugin/Screen/EPrint/Staff/CoinDOI.pm</filename>
+          <mime_type>text/plain</mime_type>
+          <hash>7bdc9f7e5f1953702d5835ad4a3248a1</hash>
+          <hash_type>MD5</hash_type>
+          <filesize>29049</filesize>
         </file>
         <file>
           <datasetid>document</datasetid>
@@ -23,48 +119,16 @@
         </file>
         <file>
           <datasetid>document</datasetid>
-          <filename>plugins/EPrints/Plugin/Event/DataCiteEvent.pm</filename>
-          <mime_type>text/x-java</mime_type>
-          <hash>6a29de65f6268314881d1197cb70b74e</hash>
-          <hash_type>MD5</hash_type>
-          <filesize>7606</filesize>
-        </file>
-        <file>
-          <datasetid>document</datasetid>
-          <filename>plugins/EPrints/Plugin/Export/DataCiteXML.pm</filename>
+          <filename>static/style/auto/datacitedoi.css</filename>
           <mime_type>text/plain</mime_type>
-          <hash>c2cd69eac69b3008b343d916688b95f4</hash>
+          <hash>3b096a4fe63feb82a773f73c55dd30e8</hash>
           <hash_type>MD5</hash_type>
-          <filesize>2948</filesize>
-        </file>
-        <file>
-          <datasetid>document</datasetid>
-          <filename>plugins/EPrints/Plugin/Screen/EPrint/Staff/CoinDOI.pm</filename>
-          <mime_type>text/plain</mime_type>
-          <hash>9be56b73b331a5a012466899d8c644f0</hash>
-          <hash_type>MD5</hash_type>
-          <filesize>3894</filesize>
-        </file>
-        <file>
-          <datasetid>document</datasetid>
-          <filename>cfg.d/z_datacite_mapping.pl</filename>
-          <mime_type>text/plain</mime_type>
-          <hash>90c86b14e90b7eb00886bf3840b081e6</hash>
-          <hash_type>MD5</hash_type>
-          <filesize>20118</filesize>
-        </file>
-        <file>
-          <datasetid>document</datasetid>
-          <filename>epm/DataCiteDoi/cfg/cfg.d/z_datacitedoi.pl</filename>
-          <mime_type>text/plain</mime_type>
-          <hash>01fcd95e3ec2d89e7875b5c21c594b00</hash>
-          <hash_type>MD5</hash_type>
-          <filesize>6522</filesize>
+          <filesize>1253</filesize>
         </file>
       </files>
       <mime_type>text/plain</mime_type>
       <format>text</format>
-      <main>epm/DataCiteDoi/cfg/cfg.d/z_datacitedoi.pl</main>
+      <main>static/style/auto/datacitedoi.css</main>
       <content>install</content>
     </document>
     <document>
@@ -83,7 +147,7 @@
       <content>coverimage</content>
     </document>
   </documents>
-  <version>2.1.2</version>
+  <version>3.0</version>
   <creators>
     <item>
       <name>
@@ -91,6 +155,13 @@
         <given>Rory</given>
       </name>
       <id>repositories@ulcc.ac.uk</id>
+    </item>
+    <item>
+      <name>
+        <family>Fyson</family>
+        <given>Will</given>
+      </name>
+      <id>will.fyson@cosector.com</id>
     </item>
   </creators>
   <datestamp>2019-11-12 11:52:03</datestamp>

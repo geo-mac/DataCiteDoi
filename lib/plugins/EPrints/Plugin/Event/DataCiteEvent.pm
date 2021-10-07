@@ -380,12 +380,13 @@ sub update_repository_record
     # set the citation
     if( $class eq "eprint" )
     {
-        my $citation = $dataobj->render_citation;
+        my $citation = $dataobj->render_citation( "datacite_tombstone" );
         $dc->set_value( "citation", $citation );
     }
     elsif( $class eq "document" )
     {
-        my $citation = $dataobj->render_citation;
+        my $eprint = $dataobj->get_eprint;
+        my $citation = $dataobj->render_citation( "datacite_tombstone", eprint => $eprint );
         $dc->set_value( "citation", $citation );
     }
     $dc->commit;
