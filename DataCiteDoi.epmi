@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <epm xmlns='http://eprints.org/ep2/data/2.0' id='http://localhost:8080/id/epm/DataCiteDoi'>
   <epmid>DataCiteDoi</epmid>
-  <uri>http://template.ulcc.ac.uk/id/epm/DataCiteDoi</uri>
+  <uri>http://localhost:8080/id/epm/DataCiteDoi</uri>
   <documents>
     <document>
       <files>
@@ -65,9 +65,9 @@
           <datasetid>document</datasetid>
           <filename>epm/DataCiteDoi/cfg/cfg.d/z_datacitedoi.pl</filename>
           <mime_type>text/plain</mime_type>
-          <hash>c03bdb951e7cf1a80d46a3931d9ae0ac</hash>
+          <hash>797d62dde7877979cf561405ba1467b0</hash>
           <hash_type>MD5</hash_type>
-          <filesize>11359</filesize>
+          <filesize>11372</filesize>
         </file>
         <file>
           <datasetid>document</datasetid>

@@ -185,9 +185,9 @@ $c->add_dataset_trigger( "eprint", EP_TRIGGER_STATUS_CHANGE , sub {
 
     # do we have a DOI that matches the one we would/could coin
     my $eprint_doi_field = $repository->get_conf( "datacitedoi", "eprintdoifield" );
-    my $eprint_doi = EPrints::DataCite::Utils::generate_doi( $repository, $eprint );
+    return if !$eprint->is_set( $eprint_doi_field ); # no DOI set
 
-    return if !$eprint->is_set( $eprint_doi_field );
+    my $eprint_doi = EPrints::DataCite::Utils::generate_doi( $repository, $eprint );
 
     # DOIs are not case sensitive so lets lowercase both values to be sure they match
     return if lc( $eprint->value( $eprint_doi_field ) ) ne lc( $eprint_doi );
