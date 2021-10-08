@@ -596,12 +596,15 @@ $c->{datacite_eprint_mapping_relatedIdentifiers} = sub {
  
         # get our parent      
         my $parent = $ds->dataobj( $dataobj->value( "succeeds" ) );
-
-        my $relatedIdentifier = EPrints::DataCite::Utils::create_related_identifier( $repo, $xml, $parent, $relationType );
-        if( defined $relatedIdentifier )
+        
+        if( defined $parent ) # check out parent still exists (it may have since been retired)
         {
-            $relatedIdentifiers = $xml->create_element( "relatedIdentifiers" ) if (!defined $relatedIdentifiers);
-            $relatedIdentifiers->appendChild( $relatedIdentifier );
+            my $relatedIdentifier = EPrints::DataCite::Utils::create_related_identifier( $repo, $xml, $parent, $relationType );
+            if( defined $relatedIdentifier )
+            {
+                $relatedIdentifiers = $xml->create_element( "relatedIdentifiers" ) if (!defined $relatedIdentifiers);
+                $relatedIdentifiers->appendChild( $relatedIdentifier );
+            }
         }
     }
     

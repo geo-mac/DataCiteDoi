@@ -172,7 +172,6 @@ sub get_doi_info
 sub process_datacite_response
 {
     my( $self, $repo, $dataobj, $datacite_data ) = @_;
-
     my $data = {};
 
     # first get the state

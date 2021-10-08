@@ -183,17 +183,10 @@ $c->add_dataset_trigger( "eprint", EP_TRIGGER_STATUS_CHANGE , sub {
     return if !defined $params{dataobj};
     my $eprint = $params{dataobj};
 
-    # do we have a DOI that matches the one we would/could coin
+    # do we have a DOI?
     my $eprint_doi_field = $repository->get_conf( "datacitedoi", "eprintdoifield" );
-    return if !$eprint->is_set( $eprint_doi_field ); # no DOI set
+    return if !$eprint->is_set( $eprint_doi_field );
 
-    my $eprint_doi = EPrints::DataCite::Utils::generate_doi( $repository, $eprint );
-
-    # DOIs are not case sensitive so lets lowercase both values to be sure they match
-    return if lc( $eprint->value( $eprint_doi_field ) ) ne lc( $eprint_doi );
-
-    # we could also check the datacite api here to see what state (if the doi can be found) it thinks the DOI is in... but we'll save this for the indexer event so as not to cause any delays to the status change
- 
     # trigger indexer update doi event
     $repository->dataset( "event_queue" )->create_dataobj({
         pluginid => "Event::DataCiteEvent",
@@ -219,17 +212,22 @@ $c->add_dataset_trigger( "document", EP_TRIGGER_REMOVED, \&remove_doi );
 
         my $datasetid = $dataobj->get_dataset_id;
 
-        # do we have a DOI that matches the one we would/could coin
+        # do we have a DOI?
         my $doi_field = $repository->get_conf( "datacitedoi", $datasetid."doifield" );
-        my $doi = EPrints::DataCite::Utils::generate_doi( $repository, $dataobj );
-        return if !$dataobj->is_set( $doi_field );
-        return if $dataobj->value( $doi_field ) ne $doi;
+        return if !$dataobj->is_set( $doi_field );        
+
+        # get dataobj uri to check, when the event is called, if this DOI actually points to us
+        my $dataobj_uri = $dataobj->uri;
+        if( $repository->can_call( $datasetid."_landing_page" ) ) # landing page url override for documents (or eprints if needed)
+        {
+            $dataobj_uri = $repository->call( $datasetid."_landing_page", $dataobj, $repository );
+        }
 
         # trigger indexer to remove doi
         $repository->dataset( "event_queue" )->create_dataobj({
             pluginid => "Event::DataCiteEvent",
             action => "datacite_remove_doi",
-            params => [$datasetid, $dataobj->id, $doi],
+            params => [$datasetid, $dataobj->id, $dataobj_uri, $dataobj->value( $doi_field )],
         });
     }
 };

@@ -221,7 +221,8 @@ sub datacite_update_doi_state
     
     my $repo = $self->repository;
 
-    my $eprint_doi = EPrints::DataCite::Utils::generate_doi( $repo, $eprint );
+    my $eprint_doi_field = $repo->get_conf( "datacitedoi", "eprintdoifield" );
+    my $eprint_doi = $eprint->value( $eprint_doi_field );
     my $eprint_id = $eprint->id;
 
     # is there a record of this DOI on DataCite?
@@ -229,6 +230,18 @@ sub datacite_update_doi_state
     if( !defined $datacite_doi )
     {
         $repo->log( "DOI not found on DataCite, no record to update (EPrint: $eprint_id, DOI: $eprint_doi)" );
+        return EPrints::Const::HTTP_NOT_FOUND;
+    }
+
+    # does this DOI point to us?
+    my $datacite_ds = $repo->dataset( "datacite" );
+    my $dc = $datacite_ds->dataobj_class->get_datacite_record( $repo, $eprint->get_dataset_id, $eprint_id );
+    my $tombstone_url = "";
+    $tombstone_url = $dc->get_url if defined $dc;
+
+    if( $datacite_doi->{data}->{attributes}->{url} ne $eprint->uri && $datacite_doi->{data}->{attributes}->{url} ne $tombstone_url )
+    {
+        $repo->log( "This DOI does not point to this record so we won't be updating it (EPrint: $eprint_id, DOI: $eprint_doi)" );
         return EPrints::Const::HTTP_NOT_FOUND;
     }
 
@@ -297,7 +310,7 @@ sub datacite_update_doi_state
 # set a doi as registered rather than findable for a dataobj that has been removed
 sub datacite_remove_doi
 {
-    my( $self, $dataset_id, $dataobj_id, $doi ) = @_;
+    my( $self, $dataset_id, $dataobj_id, $dataobj_uri, $doi ) = @_;
     
     my $repo = $self->repository;
 
@@ -309,13 +322,20 @@ sub datacite_remove_doi
         return EPrints::Const::HTTP_NOT_FOUND;
     }
 
+    if( $datacite_doi->{data}->{attributes}->{url} ne $dataobj_uri )
+    {
+        $repo->log( "This DOI does not point to this record so we won't be setting a tombstone URL($dataset_id: $dataobj_id, DOI: $doi)" );
+        return EPrints::Const::HTTP_NOT_FOUND;
+    }
+
+
     # we've set the DOI as registered, not findable, so now update the URL to the tombstone page
     apply_tombstone_url( $repo, $dataset_id, $dataobj_id ); 
 
     # if this is a draft or registered doi, there's no point worrying about it
     if( $datacite_doi->{data}->{attributes}->{state} eq "draft" || $datacite_doi->{data}->{attributes}->{state} eq "registered" )
     {
-        $repo->log( "DOI current in '" . $datacite_doi->{data}->{attributes}->{state} . "' state. No need to apply any changes following dataobj removal. ($dataset_id: $dataobj_id, DOI: $doi)" );
+        $repo->log( "DOI currently in '" . $datacite_doi->{data}->{attributes}->{state} . "' state. No need to apply any changes following dataobj removal. ($dataset_id: $dataobj_id, DOI: $doi)" );
         return EPrints::Const::HTTP_NOT_FOUND;
     }
 
@@ -359,6 +379,7 @@ sub update_repository_record
     my( $repo, $dataobj ) = @_;
 
     my $class = $dataobj->get_dataset_id;
+    my $doi_field = $repo->get_conf( "datacitedoi", $class."doifield" );
 
     # get the datacite record
     my $datacite_ds = $repo->dataset( "datacite" );
@@ -375,7 +396,7 @@ sub update_repository_record
     }
 
     # set the doi
-    $dc->set_value( "doi", EPrints::DataCite::Utils::generate_doi( $repo, $dataobj ) );
+    $dc->set_value( "doi", $dataobj->value( $doi_field ) );
 
     # set the citation
     if( $class eq "eprint" )
