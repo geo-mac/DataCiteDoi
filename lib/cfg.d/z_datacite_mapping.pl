@@ -533,7 +533,7 @@ $c->{datacite_mapping_funders} = sub {
 $c->{datacite_mapping_rights_from_docs} = sub {
     my ( $xml, $dataobj, $repo ) = @_;
     
-    my $rightsList   = $xml->create_element("rightsList");
+    my $rightsList = undef;
     my $previous = {};
     my $attached_licence = undef;
 
@@ -561,6 +561,8 @@ $c->{datacite_mapping_rights_from_docs} = sub {
 		$license_phrase .= $repo->phrase("embargoed_until", embargo_date=>$doc->value("date_embargo"));
         }
 	$seen->{$license_uri} = 1;
+        $rightsList = $xml->create_element("rightsList") if !defined $rightsList;
+
         $rightsList->appendChild($xml->create_data_element("rights", $license_phrase, rightsURI => $license_uri));
     }
 

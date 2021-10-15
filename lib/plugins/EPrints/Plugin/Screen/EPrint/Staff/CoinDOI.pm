@@ -17,7 +17,7 @@ sub new
 
     # $self->{priv} = # no specific priv - one per action
 
-    $self->{actions} = [qw/ coindoi claimdoi reservedoi /];
+    $self->{actions} = [qw/ coindoi claimdoi reservedoi update_reservedoi /];
 
     $self->{appears} = [ {
         place => "eprint_editor_actions",
@@ -49,7 +49,12 @@ sub can_be_viewed
         return 0 unless $repo->get_conf( "datacitedoi", "typesallowed",  $eprint->get_type );
     }
 
-    return 0 unless $repo->get_conf( "datacitedoi", "eprintstatus",  $eprint->value( "eprint_status" ) );
+    # eprint has to be in a state where DOIs can be created or reserved
+    if( !$repo->get_conf( "datacitedoi", "eprintstatus",  $eprint->value( "eprint_status" ) )
+        && !$repo->get_conf( "datacitedoi", "reservestatus",  $eprint->value( "eprint_status" ) ) )
+    {
+        return 0;
+    }
 
     return $self->allow( $repo->get_conf( "datacitedoi", "minters" ) );
 }
@@ -181,6 +186,7 @@ sub process_datacite_response
     if( $state eq "draft" )
     {
         $data->{created} = $datacite_data->{data}->{attributes}->{created};
+        $data->{updated} = $datacite_data->{data}->{attributes}->{updated};
     }
     elsif( $state eq "registered" || $state eq "findable" )
     {
@@ -440,6 +446,7 @@ sub render_current_doi
         {
             $doi_table->appendChild( $self->render_reserve_row(
                 $repo,
+                $dataobj,
                 $doi_info->{current_doi},
             ) );
         }
@@ -494,6 +501,7 @@ sub render_available_doi
     {
         $doi_table->appendChild( $self->render_reserve_row(
             $repo,
+            $dataobj,
             $doi_info->{generated_doi},
         ) );
     }
@@ -568,7 +576,7 @@ sub render_update_row
 # Render Reserve options or details
 sub render_reserve_row
 {
-    my( $self, $repo, $doi_info ) = @_;
+    my( $self, $repo, $dataobj, $doi_info ) = @_;
 
     my $reserve_row = $repo->make_element( "div", class => "ep_table_row" );
     my $reserve_title = $reserve_row->appendChild( $repo->make_element( "div", class => "ep_table_cell" ) );
@@ -578,14 +586,27 @@ sub render_reserve_row
     if( defined $doi_info->{created} )
     {
         $reserve_value->appendChild( $self->html_phrase( "reserve_doi:reserved",
-            reserved => EPrints::Time::render_date( $repo, $doi_info->{created} )
+            reserved => EPrints::Time::render_date( $repo, $doi_info->{created} ),
+            updated => EPrints::Time::render_date( $repo, $doi_info->{updated} )
         ) );
+
+        # update reserved item form
+        my $form = $reserve_value->appendChild( $self->render_form( "get" ) );
+        $form->appendChild( $repo->render_hidden_field( "reserve_dataobj", $dataobj->id ) );
+        $form->appendChild( $repo->render_hidden_field( "reserve_class", $dataobj->get_dataset_id ) );
+        $form->appendChild( $repo->render_hidden_field( "reserve_doi", $doi_info->{doi} ) );
+        $form->appendChild( $repo->render_action_buttons(
+            _order => [ "update_reservedoi" ],
+            update_reservedoi => $self->phrase( "action:update_reservedoi:title" ) )
+        );    
     }
     else
     {
         $reserve_value->appendChild( $self->html_phrase( "reserve_doi:desc" ) );
 
         my $form = $reserve_value->appendChild( $self->render_form( "get" ) );
+        $form->appendChild( $repo->render_hidden_field( "reserve_dataobj", $dataobj->id ) );
+        $form->appendChild( $repo->render_hidden_field( "reserve_class", $dataobj->get_dataset_id ) );
         $form->appendChild( $repo->render_hidden_field( "reserve_doi", $doi_info->{doi} ) );
         $form->appendChild( $repo->render_action_buttons(
             _order => [ "reservedoi" ],
@@ -742,14 +763,32 @@ sub action_coindoi
         $repo->dataset( "event_queue" )->create_dataobj({
             pluginid => "Event::DataCiteEvent",
             action => "datacite_doi",
-            params => [ $dataobj->internal_uri, $doi ], # will a document have this???
+            params => [ $dataobj->internal_uri, $doi ],
         }); 
 
         $self->add_result_message( 1 );
     }
 }    
 
-sub allow_reservedoi { return 1; }
+sub allow_reservedoi
+{
+    my( $self ) = @_;
+    return 0 unless $self->could_obtain_eprint_lock;
+ 
+    my $repository = $self->{repository};
+ 
+    # TODO a version that works for documents too
+    my $dataobj = $self->{processor}->{eprint}; 
+ 
+    if (defined $repository->get_conf( "datacitedoi", "typesallowed")) {
+      # Is this type of eprint allowed/denied coining?
+      return 0 unless $repository->get_conf( "datacitedoi", "typesallowed",  $dataobj->get_type);
+    }
+
+    return 0 unless $repository->get_conf( "datacitedoi", "reservestatus",  $dataobj->value( "eprint_status" ));
+  
+    return $self->allow( $repository->get_conf( "datacitedoi", "minters") );
+}
 
 # reserve this eprint's DOI, i.e. add it as a draft DOI in DataCite
 sub action_reservedoi
@@ -757,12 +796,39 @@ sub action_reservedoi
     my( $self ) = @_;
     my $repo = $self->{repository};
 
+    # get the dataobj we want to update
+    my $class = $repo->param( "reserve_class" );
+    my $dataset = $repo->dataset( $class );
+    my $dataobj = $dataset->dataobj( $repo->param( "reserve_dataobj" ) );
+
+    return undef if ( !defined $dataobj );
+
     my $doi = $repo->param( "reserve_doi" );
     return undef if ( !defined $doi );
 
-    my $result = EPrints::DataCite::Utils::reserve_doi( $repo, $doi );
+    my( $response_content, $response_code ) = EPrints::DataCite::Utils::reserve_doi( $repo, $dataobj, $doi );
 }    
 
+sub allow_update_reservedoi{ return shift->allow_reservedoi( @_ ); }
+
+# reserve this eprint's DOI, i.e. add it as a draft DOI in DataCite
+sub action_update_reservedoi
+{
+    my( $self ) = @_;
+    my $repo = $self->{repository};
+
+    # get the dataobj we want to update
+    my $class = $repo->param( "reserve_class" );
+    my $dataset = $repo->dataset( $class );
+    my $dataobj = $dataset->dataobj( $repo->param( "reserve_dataobj" ) );
+
+    return undef if ( !defined $dataobj );
+
+    my $doi = $repo->param( "reserve_doi" );
+    return undef if ( !defined $doi );
+
+    my( $response_content, $response_code ) = EPrints::DataCite::Utils::update_reserve_doi( $repo, $dataobj, $doi );
+}    
 
 sub allow_claimdoi { return 1; }
 

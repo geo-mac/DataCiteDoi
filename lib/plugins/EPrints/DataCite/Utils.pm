@@ -39,17 +39,22 @@ sub generate_doi
 # reserve a doi, a.k.a create draft doi
 sub reserve_doi
 {
-    my( $repo, $doi ) = @_;
+    my( $repo, $dataobj, $doi ) = @_;
     
     my $datacite_url = URI->new( $repo->config( 'datacitedoi', 'apiurl' ) . "/dois" );   
-    
+
+    my $xml = $dataobj->export( "DataCiteXML" );
+    $xml = MIME::Base64::encode_base64( $xml );
+
     # build the content
     my $content = qq(
 {
   "data": {
     "type": "dois",
     "attributes": {
-      "doi": "$doi"
+      "doi": "$doi",
+      "url": "https://schema.datacite.org/meta/kernel-4.0/index.html",
+      "xml": "$xml"
     }
   }
 }
@@ -62,6 +67,48 @@ sub reserve_doi
     
     my $req = HTTP::Request->new(
         POST => $datacite_url,
+        $headers, Encode::encode_utf8( $content )
+    );
+
+    my $user_name = $repo->get_conf( "datacitedoi", "user" );
+    my $user_pw = $repo->get_conf( "datacitedoi", "pass" );
+    $req->authorization_basic($user_name, $user_pw);
+
+    my $ua = LWP::UserAgent->new;
+    my $res = $ua->request($req);
+    
+    return ($res->content(),$res->code());    
+}
+
+# update a reserved doi
+sub update_reserve_doi
+{
+    my( $repo, $dataobj, $doi ) = @_;
+    
+    my $datacite_url = URI->new( $repo->config( 'datacitedoi', 'apiurl' ) . "/dois/$doi" );   
+
+    my $xml = $dataobj->export( "DataCiteXML" );
+    $xml = MIME::Base64::encode_base64( $xml );
+
+    # build the content
+    my $content = qq(
+{
+  "data": {
+    "attributes": {
+      "url": "https://schema.datacite.org/meta/kernel-4.0/index.html",
+      "xml": "$xml"
+    }
+  }
+}
+);
+
+    # build request
+    my $headers = HTTP::Headers->new(
+        'Content-Type' => 'application/vnd.api+json',
+    );
+    
+    my $req = HTTP::Request->new(
+        PUT => $datacite_url,
         $headers, Encode::encode_utf8( $content )
     );
 
