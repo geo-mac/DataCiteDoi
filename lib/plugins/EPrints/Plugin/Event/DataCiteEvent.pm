@@ -67,7 +67,6 @@ sub datacite_doi
     my $xml = $dataobj->export( "DataCiteXML", doi=> $thisdoi );
     return $xml if( $xml =~ /^\d+$/ ); # just a number? coin_doi has passed back an error code pass it on...
 
-    #print STDERR "XML: $xml\n";
     my $url = $repository->get_conf( "datacitedoi", "mdsurl" );
     $url.="/" if( $url !~ /\/$/ ); # attach slash if config has forgotten
     my $user_name = $repository->get_conf( "datacitedoi", "user" );
@@ -239,27 +238,52 @@ sub datacite_update_doi_state
     my $tombstone_url = "";
     $tombstone_url = $dc->get_url if defined $dc;
 
-    if( $datacite_doi->{data}->{attributes}->{url} ne $eprint->uri && $datacite_doi->{data}->{attributes}->{url} ne $tombstone_url )
+    if( ( !defined $datacite_doi->{data}->{attributes}->{url} ) || $datacite_doi->{data}->{attributes}->{url} ne $eprint->uri && $datacite_doi->{data}->{attributes}->{url} ne $tombstone_url )
     {
         $repo->log( "This DOI does not point to this record so we won't be updating it (EPrint: $eprint_id, DOI: $eprint_doi)" );
         return EPrints::Const::HTTP_NOT_FOUND;
     }
 
-    # if this is a draft doi, there's no point worrying about it
-    if( $datacite_doi->{data}->{attributes}->{state} eq "draft" )
+    # if this is a draft doi and we're moving to live... let's mint a new DOI if we can
+    if( $datacite_doi->{data}->{attributes}->{state} eq "draft" && $new_status eq "archive" )
     {
-        $repo->log( "DOI exists only in a draft state on DataCite (EPrint: $eprint_id, DOI: $eprint_doi)" );
+        # first validate the dataobj
+        my $validate_fn = "validate_datacite_eprint";
+        my @problems;
+        if( $self->{session}->can_call( $validate_fn ) )
+        {
+            push @problems, $self->{session}->call(
+                $validate_fn,
+                $eprint,
+                $repo
+            );
+        }
+        if( scalar @problems == 0 )
+        {
+            # make an event to mint the DOI
+            $repo->dataset( "event_queue" )->create_dataobj({
+                pluginid => "Event::DataCiteEvent",
+                action => "datacite_doi",
+                params => [ $eprint->internal_uri, $eprint_doi ],
+            });
+            $repo->log( "DOI minting event called for EPrint $eprint_id (DOI: $eprint_doi)" );
+            return EPrints::Const::HTTP_OK;
+        }
+    
+        # we encountered an issue on the way
+        $repo->log( "Unable to mint DOI when transerring EPrint to live archive: $eprint_doi (EPrint: $eprint_id)" );
         return EPrints::Const::HTTP_NOT_FOUND;
     }
 
+    # we already have a DOI in the global handle system so let's udpate it's state as appropriate
     my $user_name = $repo->get_conf( "datacitedoi", "user" );
     my $user_pw = $repo->get_conf( "datacitedoi", "pass" );
     my $datacite_url = URI->new( $repo->config( 'datacitedoi', 'mdsurl' ) . "/metadata/$eprint_doi" );
     my $ua = LWP::UserAgent->new();
     my $req;
 
-    # if our new status is retired and on datacite we're findable... set as registered
-    if( $new_status eq "deletion" && $datacite_doi->{data}->{attributes}->{state} eq "findable" )
+    # if our new status is not live and on datacite we're findable... set as registered
+    if( $new_status ne "archive"  && $datacite_doi->{data}->{attributes}->{state} eq "findable" )
     {
         # first set a tombstone page for the newly retired item
         apply_tombstone_url( $repo, "eprint", $eprint_id ); 
@@ -290,7 +314,7 @@ sub datacite_update_doi_state
     if( !defined $req )
     {
         $repo->log( "No update applied to DOI: $eprint_doi (EPrint: $eprint_id)" );
-        return EPrints::Const::HTTP_INTERNAL_SERVER_ERROR;
+        return EPrints::Const::HTTP_NOT_FOUND;
     }
 
     $req->authorization_basic( $user_name, $user_pw );

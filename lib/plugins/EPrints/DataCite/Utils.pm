@@ -41,7 +41,19 @@ sub reserve_doi
 {
     my( $repo, $dataobj, $doi ) = @_;
     
+    my $class = $dataobj->get_dataset_id;
+
     my $datacite_url = URI->new( $repo->config( 'datacitedoi', 'apiurl' ) . "/dois" );   
+
+    my $repo_url;
+    if( $repo->can_call( $class."_landing_page" ) )
+    {
+        $repo_url = $repo->call( $class."_landing_page", $dataobj, $repo );
+    }
+    else
+    {
+        $repo_url = $dataobj->uri();
+    }
 
     my $xml = $dataobj->export( "DataCiteXML" );
     $xml = MIME::Base64::encode_base64( $xml );
@@ -53,7 +65,7 @@ sub reserve_doi
     "type": "dois",
     "attributes": {
       "doi": "$doi",
-      "url": "https://schema.datacite.org/meta/kernel-4.0/index.html",
+      "url": "$repo_url",
       "xml": "$xml"
     }
   }
@@ -76,7 +88,14 @@ sub reserve_doi
 
     my $ua = LWP::UserAgent->new;
     my $res = $ua->request($req);
-    
+   
+    if( $res->is_success )
+    {
+        my $doifield = $repo->get_conf( "datacitedoi", $class."doifield" );
+        $dataobj->set_value( $doifield, $doi );
+        $dataobj->commit;
+    }
+
     return ($res->content(),$res->code());    
 }
 
@@ -84,8 +103,20 @@ sub reserve_doi
 sub update_reserve_doi
 {
     my( $repo, $dataobj, $doi ) = @_;
-    
+ 
+    my $class = $dataobj->get_dataset_id;
+
     my $datacite_url = URI->new( $repo->config( 'datacitedoi', 'apiurl' ) . "/dois/$doi" );   
+
+    my $repo_url;
+    if( $repo->can_call( $class."_landing_page" ) )
+    {
+        $repo_url = $repo->call( $class."_landing_page", $dataobj, $repo );
+    }
+    else
+    {
+        $repo_url = $dataobj->uri();
+    }
 
     my $xml = $dataobj->export( "DataCiteXML" );
     $xml = MIME::Base64::encode_base64( $xml );
@@ -95,7 +126,7 @@ sub update_reserve_doi
 {
   "data": {
     "attributes": {
-      "url": "https://schema.datacite.org/meta/kernel-4.0/index.html",
+      "url": "$repo_url",
       "xml": "$xml"
     }
   }
