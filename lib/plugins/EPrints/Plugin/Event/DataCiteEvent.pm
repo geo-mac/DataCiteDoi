@@ -14,6 +14,8 @@ eval "use WWW::Curl::Easy";
 
 @ISA = qw( EPrints::Plugin::Event );
 
+# updates the URL, metadata and sets as findable the DataCite record of the given DOI, 
+# or generates a DOI from the dataobj if $doi not provided
 sub datacite_doi
 {
     my( $self, $dataobj, $doi ) = @_;
@@ -295,19 +297,14 @@ sub datacite_update_doi_state
     # if our new status is archive, and we're registered... set as findable
     if( $new_status eq "archive" && $datacite_doi->{data}->{attributes}->{state} eq "registered" )
     {
-        # set url to the eprint summary page
-        my $update = update_datacite_url( $repo, $eprint_doi, $eprint->uri );
-        if( $update )
-        {
-            $repo->log( "DataCite updated with URL: $eprint_url (DOI: $eprint_doi)" );
-        }
-        else
-        {
-            $repo->log( "Failed to update URL when moving EPrint back to the live archive, URL: $eprint_url (DOI: $eprint_doi)" );     
-        }
-
-        # set to findable with a PUT request
-        $req = HTTP::Request->new( PUT => $datacite_url );       
+        # make an event to update the DOI with any changes that have since happened
+        $repo->dataset( "event_queue" )->create_dataobj({
+            pluginid => "Event::DataCiteEvent",
+            action => "datacite_doi",
+            params => [ $eprint->internal_uri, $eprint_doi ],
+        });
+        $repo->log( "Trigger event to update DOI URL & metadata for EPrint $eprint_id, status updated to '$new_status' (DOI: $eprint_doi)" );
+        return EPrints::Const::HTTP_OK;
     }
 
     # oddly, despite our previous checks, neither of the previous two conditions were true, so nothing happens...
