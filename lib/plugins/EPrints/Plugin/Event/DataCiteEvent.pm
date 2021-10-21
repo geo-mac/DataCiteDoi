@@ -512,6 +512,12 @@ sub datacite_updatedoi
  
     if( $res->is_success )
     {
+        # ensure the doi is set
+        my $class = $dataobj->get_dataset_id;
+        my $doi_field = $repo->get_conf( "datacitedoi", $class."doifield" );
+        $dataobj->set_value( $doi_field, $doi );
+        $dataobj->commit;
+
         # we should also store a record of the dataobj's mandatory datacite fields and values
         update_repository_record( $repo, $dataobj );
 

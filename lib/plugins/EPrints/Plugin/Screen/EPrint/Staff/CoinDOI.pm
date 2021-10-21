@@ -425,19 +425,20 @@ sub render_current_doi
                 $doi_info->{current_doi}->{updated},
             ) );
         }
-        elsif( $self->check_update_metadata_and_url( $dataobj, $doi_info ) )
+        elsif( $self->check_update_metadata_and_url( $dataobj, $doi_info->{current_doi} ) )
         {
             $doi_table->appendChild( $self->render_update_url_row(
                 $repo,
                 $dataobj,
                 $doi_info->{current_doi}->{doi},
+                "current_doi",
                 $doi_info->{current_doi}->{registered},
                 $doi_info->{current_doi}->{updated},
             ) );
         }
     }
 
-    # Option to update draft doi
+    # Option to update draft doi or coin an available doi
     if( $doi_info->{current_doi}->{state} eq "available" || $doi_info->{current_doi}->{state} eq "draft" )
     {
         ## Reserve
@@ -491,6 +492,39 @@ sub render_available_doi
     my $doi_value = $doi_row->appendChild( $repo->make_element( "div", class => "ep_table_cell" ) );
     $doi_value->appendChild( $repo->make_text( $doi_info->{generated_doi}->{doi} ) );
 
+    ## Redirects to
+    if( defined $doi_info->{generated_doi}->{url} )
+    {
+        my $redirect_row = $doi_table->appendChild( $repo->make_element( "div", class => "ep_table_row" ) );
+        my $redirect_title = $redirect_row->appendChild( $repo->make_element( "div", class => "ep_table_cell" ) );
+        $redirect_title->appendChild( $self->html_phrase( "generated_doi:redirect" ) );
+        my $redirect_value = $redirect_row->appendChild( $repo->make_element( "div", class => "ep_table_cell" ) );
+
+        # Redirect options...
+        # Redirects to self
+        if( defined $doi_info->{generated_doi}->{redirects_to_dataobj} )
+        {
+            my $link = $repo->make_element( "a", href => $doi_info->{generated_doi}->{url}, target => "_blank" );
+            $link->appendChild( $repo->make_text( $doi_info->{generated_doi}->{url} ) );
+            $redirect_value->appendChild( $self->html_phrase( "generated_doi:redirect:self", url => $link ) );
+        }
+        else
+        {                
+            my $link = $repo->make_element( "a", href => $doi_info->{generated_doi}->{url}, target => "_blank" );
+            $link->appendChild( $repo->make_text( $doi_info->{generated_doi}->{url} ) );
+     
+            # Redirects to parent EPrint
+            if( defined $doi_info->{generated_doi}->{redirects_to_parent} )
+            {
+                $redirect_value->appendChild( $self->html_phrase( "generated_doi:redirect:parent", url => $link ) );
+            }
+            else
+            {             
+                $redirect_value->appendChild( $link );
+            }
+        }
+    }
+
     ## Reserve
     if( ( $doi_info->{generated_doi}->{state} eq "available" || $doi_info->{generated_doi}->{state} eq "draft" ) &&
         ( $self->allow_reservedoi ) )
@@ -516,13 +550,21 @@ sub render_available_doi
 
         ## Claim - for DOIs already minted
         if( $doi_info->{generated_doi}->{state} eq "findable" || $doi_info->{generated_doi}->{state} eq "registered" )
-        {            
+        {           
+
+            my $claim;
+            $claim = "claim" if( defined $doi_info->{generated_doi}->{url} ); # this generated DOI already exists, we're going to update it's metadata and URL to point to us, i.e. claim it as ours
+
+            $claim = "reclaim" if( defined $doi_info->{generated_doi}->{redirects_to_dataobj} ); # this already points to us!
+
             $doi_table->appendChild( $self->render_update_url_row( 
                 $repo,
                 $dataobj,
                 $doi_info->{generated_doi}->{doi},
+                "generated_doi",
                 $doi_info->{generated_doi}->{registered},
                 $doi_info->{generated_doi}->{updated},
+                $claim
             ) );
         }
     }
@@ -590,7 +632,7 @@ sub render_update_row
 # Form and details for updating the metadata and URL of an existing DOI
 sub render_update_url_row
 {
-    my( $self, $repo, $dataobj, $doi, $registered, $updated ) = @_;
+    my( $self, $repo, $dataobj, $doi, $doi_type, $registered, $updated, $claim ) = @_;
 
     my $update_row = $repo->make_element( "div", class => "ep_table_row" );
     my $update_title = $update_row->appendChild( $repo->make_element( "div", class => "ep_table_cell" ) );
@@ -609,14 +651,25 @@ sub render_update_url_row
     my $form = $update_value->appendChild( $self->render_form( "get" ) );
     $form->appendChild( $repo->render_hidden_field( "class", $dataobj->get_dataset_id ) );
     $form->appendChild( $repo->render_hidden_field( "dataobj", $dataobj->id ) );
+    $form->appendChild( $repo->render_hidden_field( "doi_type", $doi_type ) );
 
     # include the DOI if we're updating an existing DOI
     $form->appendChild( $repo->render_hidden_field( "doi", $doi ) ) if( defined $doi );
 
-    $form->appendChild( $repo->render_action_buttons(
-        _order => [ "updateurl" ],
-        updateurl => $repo->phrase( "Plugin/Screen/EPrint/Staff/CoinDOI:action:updateurl:title" ) )
-    );
+    if( defined $claim )
+    {
+        $form->appendChild( $repo->render_action_buttons(
+            _order => [ "updateurl" ],
+            updateurl => $repo->phrase( "Plugin/Screen/EPrint/Staff/CoinDOI:action:$claim:title" ) )
+);
+    }
+    else
+    {
+        $form->appendChild( $repo->render_action_buttons(
+            _order => [ "updateurl" ],
+            updateurl => $repo->phrase( "Plugin/Screen/EPrint/Staff/CoinDOI:action:updateurl:title" ) )
+        );
+    }
 
     return $update_row;
 }
@@ -903,6 +956,7 @@ sub allow_updateurl
     my $class = $repo->param( "class" );
     my $dataset = $repo->dataset( $class );
     my $dataobj = $dataset->dataobj( $repo->param( "dataobj" ) );
+    my $doi_type = $repo->param( "doi_type" );
 
     return 0 if !defined $dataobj;
  
@@ -910,7 +964,7 @@ sub allow_updateurl
     my $dataobj_id = $dataobj->id;
     my $doi_info = $self->{processor}->{dois}->{$class}->{$dataobj_id};
 
-    return 1 if $doi_info->{current_doi}->{state} eq "draft"; # fewer checks for draft dois
+    return 1 if $doi_info->{$doi_type}->{state} eq "draft"; # fewer checks for draft dois
 
     # are there problems with it
     my $problems = $self->validate( $dataobj, 1 );
@@ -918,12 +972,12 @@ sub allow_updateurl
     {
         return 0;
     }
-
-    if( $self->check_update_metadata_and_url( $dataobj, $doi_info ) )
+ 
+    if( $self->check_update_metadata_and_url( $dataobj, $doi_info->{$doi_type} ) )
     {
         return 1;
     }
-
+    print STDERR "fail\n";
     return 0;
 }
 
@@ -931,9 +985,8 @@ sub allow_updateurl
 sub check_update_metadata_and_url
 {
     my( $self, $dataobj, $doi_info ) = @_;
-
-    if( defined $doi_info->{current_doi}->{repo_doi} && # one of our DOIs
-        ( $doi_info->{current_doi}->{state} eq "registered" || $doi_info->{current_doi}->{state} eq "findable" ) &&
+    if( defined $doi_info->{repo_doi} && # one of our DOIs
+        ( $doi_info->{state} eq "registered" || $doi_info->{state} eq "findable" ) &&
         $self->get_dataobj_url( $dataobj ) ) # and is there a url to use??
     {
         return 1;
