@@ -4,10 +4,13 @@
 <epp:phrases xmlns="http://www.w3.org/1999/xhtml" xmlns:epp="http://eprints.org/ep3/phrase" xmlns:epc="http://eprints.org/ep3/control">
     <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:action:coindoi:description">This will add a mint-DOI event to the event queue (i.e. Will not happen immediately)</epp:phrase>
     <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:action:coindoi:title">Mint DOI</epp:phrase>
-    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:coiningdoi">This item will have a DOI created shortly.</epp:phrase>
     <epp:phrase id="embargoed_until">.Embargoed until: <epc:pin name="embargo_date"/> </epp:phrase>
 
 
+    <!-- Messages -->
+    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:mintdoi">This item will have a DOI created shortly.</epp:phrase>
+    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:updatedoi">The metadata associated with this DOI will be updated shortly.</epp:phrase>
+    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:updateurl">The metadata and URL associated with this DOI will be updated shortly.</epp:phrase>
 
 <!--license-->
 
@@ -157,20 +160,20 @@
     <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:available_doi:alert">This item already has a DOI assigned to it. It is not advisable to create new, unnecessary DOIs if a DOI already exists.</epp:phrase>
     <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:available_doi:doi">DOI:</epp:phrase> 
 
+    <!-- Mint DOI -->
+    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:mint_doi">Mint</epp:phrase>
+    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:action:mintdoi:title">Mint DOI</epp:phrase>
+
     <!-- Update DOI -->
-    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:update_doi:url">Update:</epp:phrase>
-    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:update_doi:metadata_only">Update:</epp:phrase>
-    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:update_doi:coin">Mint:</epp:phrase>
-    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:update_doi:claim">Claim:</epp:phrase>
+    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:update_doi">Update</epp:phrase>
+    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:action:updatedoi:title">Update Metadata</epp:phrase>
+    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:action:updateurl:title">Update Metadata &amp; URL</epp:phrase>
 
     <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:update_doi:timestamps">
         <p>This DOI was originally created on <epc:pin name="registered" /></p>
         <p>This DOI was last updated on <epc:pin name="updated" /></p>
         <p>The metadata for this record on DataCite can be updated. This should only be used for correcting errors or adding additional files.</p></epp:phrase>
 
-    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:action:coin:metadata_only:title">Update Metadata</epp:phrase>
-    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:action:coin:url:title">Update Metadata &amp; URL</epp:phrase>
-    <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:action:coin:coin:title">Mint DOI</epp:phrase>
     <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:action:coin:claim:title">Claim DOI</epp:phrase>
 
     <!-- Reserve DOI -->

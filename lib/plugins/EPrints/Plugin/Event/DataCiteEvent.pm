@@ -273,7 +273,7 @@ sub datacite_update_doi_state
         }
     
         # we encountered an issue on the way
-        $repo->log( "Unable to mint DOI when transerring EPrint to live archive: $eprint_doi (EPrint: $eprint_id)" );
+        $repo->log( "Unable to mint DOI when transferring EPrint to live archive: $eprint_doi (EPrint: $eprint_id)" );
         return EPrints::Const::HTTP_NOT_FOUND;
     }
 
@@ -285,7 +285,7 @@ sub datacite_update_doi_state
     my $req;
 
     # if our new status is not live and on datacite we're findable... set as registered
-    if( $new_status ne "archive"  && $datacite_doi->{data}->{attributes}->{state} eq "findable" )
+    if( $new_status ne "archive" && $datacite_doi->{data}->{attributes}->{state} eq "findable" )
     {
         # first set a tombstone page for the newly retired item
         apply_tombstone_url( $repo, "eprint", $eprint_id ); 
@@ -498,6 +498,38 @@ sub update_datacite_url
     else
     {
         return 0;  
+    }
+}
+
+# updates a DOI on DataCite with a new URL
+sub datacite_updatedoi
+{
+    my( $self, $dataobj, $doi, $url ) = @_;
+
+    my $repo = $self->repository();
+ 
+    my $res = EPrints::DataCite::Utils::update_metadata( $repo, $dataobj, $doi, $url );
+ 
+    if( $res->is_success )
+    {
+        # we should also store a record of the dataobj's mandatory datacite fields and values
+        update_repository_record( $repo, $dataobj );
+
+        if( defined $url )
+        {
+            $repo->log( "DOI $doi metadata and URL successfully updated" );
+            return EPrints::Const::HTTP_OK;
+        }
+        else
+        {
+            $repo->log( "DOI $doi metadata successfully updated" );
+            return EPrints::Const::HTTP_OK; 
+        }
+    }
+    else
+    {
+        $repo->log( "Failed to update metadata for DOI $doi" );
+        return EPrints::Const::HTTP_INTERNAL_SERVER_ERROR;                           
     }
 }
 

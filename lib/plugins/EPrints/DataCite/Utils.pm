@@ -99,39 +99,46 @@ sub reserve_doi
     return ($res->content(),$res->code());    
 }
 
-# update a reserved doi
-sub update_reserve_doi
+# update metadata
+sub update_metadata
 {
-    my( $repo, $dataobj, $doi ) = @_;
+    my( $repo, $dataobj, $doi, $url ) = @_;
  
     my $class = $dataobj->get_dataset_id;
 
     my $datacite_url = URI->new( $repo->config( 'datacitedoi', 'apiurl' ) . "/dois/$doi" );   
 
-    my $repo_url;
-    if( $repo->can_call( $class."_landing_page" ) )
-    {
-        $repo_url = $repo->call( $class."_landing_page", $dataobj, $repo );
-    }
-    else
-    {
-        $repo_url = $dataobj->uri();
-    }
-
     my $xml = $dataobj->export( "DataCiteXML" );
     $xml = MIME::Base64::encode_base64( $xml );
 
-    # build the content
-    my $content = qq(
+    my $content;
+    if( defined $url )
+    {
+
+        # build the content
+        $content = qq(
 {
   "data": {
     "attributes": {
-      "url": "$repo_url",
+      "url": "$url",
       "xml": "$xml"
     }
   }
 }
 );
+    }
+    else
+    {
+        $content = qq(
+{
+  "data": {
+    "attributes": {
+      "xml": "$xml"
+    }
+  }
+}
+);
+    }
 
     # build request
     my $headers = HTTP::Headers->new(
@@ -150,7 +157,7 @@ sub update_reserve_doi
     my $ua = LWP::UserAgent->new;
     my $res = $ua->request($req);
     
-    return ($res->content(),$res->code());    
+    return $res;
 }
 
 
