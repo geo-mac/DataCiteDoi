@@ -189,14 +189,31 @@ $c->add_dataset_trigger( "eprint", EP_TRIGGER_STATUS_CHANGE , sub {
 
     # do we have a DOI?
     my $eprint_doi_field = $repository->get_conf( "datacitedoi", "eprintdoifield" );
-    return if !$eprint->is_set( $eprint_doi_field );
+    if( $eprint->is_set( $eprint_doi_field ) )
+    {
+        # trigger indexer update doi event
+        $repository->dataset( "event_queue" )->create_dataobj({
+            pluginid => "Event::DataCiteEvent",
+            action => "datacite_update_doi_state",
+            params => [$eprint->internal_uri, $params{new_status}],
+        });
+    }
 
-    # trigger indexer update doi event
-    $repository->dataset( "event_queue" )->create_dataobj({
-        pluginid => "Event::DataCiteEvent",
-        action => "datacite_update_doi_state",
-        params => [$eprint->internal_uri, $params{new_status}],
-    });
+    # and now update the documents
+    my $document_doi_field = $repository->get_conf( "datacitedoi", "documentdoifield" );
+    foreach my $doc ( $eprint->get_all_documents )
+    {
+        if( $doc->is_set( $document_doi_field ) )
+        {
+            # trigger indexer update doi event
+            $repository->dataset( "event_queue" )->create_dataobj({
+                pluginid => "Event::DataCiteEvent",
+                action => "datacite_update_doi_state",
+                params => [$doc->internal_uri, $params{new_status}],
+            });
+        }
+    }
+
 });
 
 $c->add_dataset_trigger( "eprint", EP_TRIGGER_REMOVED, \&remove_doi );

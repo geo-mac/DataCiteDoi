@@ -215,34 +215,54 @@ sub datacite_request_curl
     return ($content, $http_retcode);
 }
 
-
 sub datacite_update_doi_state
 {
-    my( $self, $eprint, $new_status ) = @_;
-    
+    my( $self, $dataobj, $new_status ) = @_;
+
     my $repo = $self->repository;
 
-    my $eprint_doi_field = $repo->get_conf( "datacitedoi", "eprintdoifield" );
-    my $eprint_doi = $eprint->value( $eprint_doi_field );
-    my $eprint_id = $eprint->id;
+    # check to see if we're supporting documents
+    my $class =  $dataobj->get_dataset_id;
+    if( $class eq "document" && !$repo->get_conf( "datacitedoi", "document_dois" ) )
+    {
+        return EPrints::Const::HTTP_NOT_FOUND;
+    }
+    
+    # get dataobj and doi
+    my $doi_field = $repo->get_conf( "datacitedoi", $class."doifield" );
+    my $dataobj_doi = $dataobj->value( $doi_field );
+    my $dataobj_id = $dataobj->id;
+
+    # get eprint id
+    my $eprint_id = $dataobj_id;    
+    if( $class eq "document" )
+    {
+        $eprint_id = $dataobj->get_eprint->id;   
+    }
 
     # is there a record of this DOI on DataCite?
-    my $datacite_doi = EPrints::DataCite::Utils::datacite_doi_query( $repo, $eprint_doi );
+    my $datacite_doi = EPrints::DataCite::Utils::datacite_doi_query( $repo, $dataobj_doi );
     if( !defined $datacite_doi )
     {
-        $repo->log( "DOI not found on DataCite, no record to update (EPrint: $eprint_id, DOI: $eprint_doi)" );
+        $repo->log( "DOI not found on DataCite, no record to update ($class: $dataobj_id, DOI: $dataobj_doi)" );
         return EPrints::Const::HTTP_NOT_FOUND;
     }
 
     # does this DOI point to us?
     my $datacite_ds = $repo->dataset( "datacite" );
-    my $dc = $datacite_ds->dataobj_class->get_datacite_record( $repo, $eprint->get_dataset_id, $eprint_id );
+    my $dc = $datacite_ds->dataobj_class->get_datacite_record( $repo, $class, $dataobj_id );
     my $tombstone_url = "";
     $tombstone_url = $dc->get_url if defined $dc;
 
-    if( ( !defined $datacite_doi->{data}->{attributes}->{url} ) || $datacite_doi->{data}->{attributes}->{url} ne $eprint->uri && $datacite_doi->{data}->{attributes}->{url} ne $tombstone_url )
+    my $dataobj_uri = $dataobj->uri;
+    if( $repo->can_call( $class."_landing_page" ) ) # landing page url override for documents (or eprints if needed)
     {
-        $repo->log( "This DOI does not point to this record so we won't be updating it (EPrint: $eprint_id, DOI: $eprint_doi)" );
+        $dataobj_uri = $repo->call( $class."_landing_page", $dataobj, $repo );
+    }
+
+    if( ( !defined $datacite_doi->{data}->{attributes}->{url} ) || $datacite_doi->{data}->{attributes}->{url} ne $dataobj_uri && $datacite_doi->{data}->{attributes}->{url} ne $tombstone_url )
+    {
+        $repo->log( "This DOI does not point to this record so we won't be updating it ($class: $dataobj_id, DOI: $dataobj_doi)" );
         return EPrints::Const::HTTP_NOT_FOUND;
     }
 
@@ -250,13 +270,13 @@ sub datacite_update_doi_state
     if( $datacite_doi->{data}->{attributes}->{state} eq "draft" && $new_status eq "archive" )
     {
         # first validate the dataobj
-        my $validate_fn = "validate_datacite_eprint";
+        my $validate_fn = "validate_datacite_$class";
         my @problems;
         if( $self->{session}->can_call( $validate_fn ) )
         {
             push @problems, $self->{session}->call(
                 $validate_fn,
-                $eprint,
+                $dataobj,
                 $repo
             );
         }
@@ -266,21 +286,21 @@ sub datacite_update_doi_state
             $repo->dataset( "event_queue" )->create_dataobj({
                 pluginid => "Event::DataCiteEvent",
                 action => "datacite_doi",
-                params => [ $eprint->internal_uri, $eprint_doi ],
+                params => [ $dataobj->internal_uri, $dataobj_doi ],
             });
-            $repo->log( "DOI minting event called for EPrint $eprint_id (DOI: $eprint_doi)" );
+            $repo->log( "DOI minting event called for $class $dataobj_id (DOI: $dataobj_doi)" );
             return EPrints::Const::HTTP_OK;
         }
     
         # we encountered an issue on the way
-        $repo->log( "Unable to mint DOI when transferring EPrint to live archive: $eprint_doi (EPrint: $eprint_id)" );
+        $repo->log( "Unable to mint DOI when transferring EPrint $eprint_id to live archive ($class: $dataobj_id, DOI: $dataobj_doi)" );
         return EPrints::Const::HTTP_NOT_FOUND;
     }
 
     # we already have a DOI in the global handle system so let's udpate it's state as appropriate
     my $user_name = $repo->get_conf( "datacitedoi", "user" );
     my $user_pw = $repo->get_conf( "datacitedoi", "pass" );
-    my $datacite_url = URI->new( $repo->config( 'datacitedoi', 'mdsurl' ) . "/metadata/$eprint_doi" );
+    my $datacite_url = URI->new( $repo->config( 'datacitedoi', 'mdsurl' ) . "/metadata/$dataobj_doi" );
     my $ua = LWP::UserAgent->new();
     my $req;
 
@@ -288,7 +308,7 @@ sub datacite_update_doi_state
     if( $new_status ne "archive" && $datacite_doi->{data}->{attributes}->{state} eq "findable" )
     {
         # first set a tombstone page for the newly retired item
-        apply_tombstone_url( $repo, "eprint", $eprint_id ); 
+        apply_tombstone_url( $repo, $class, $dataobj_id ); 
 
         # set to registered with a DELETE request
         $req = HTTP::Request->new( DELETE => $datacite_url );       
@@ -301,16 +321,16 @@ sub datacite_update_doi_state
         $repo->dataset( "event_queue" )->create_dataobj({
             pluginid => "Event::DataCiteEvent",
             action => "datacite_doi",
-            params => [ $eprint->internal_uri, $eprint_doi ],
+            params => [ $dataobj->internal_uri, $dataobj_doi ],
         });
-        $repo->log( "Trigger event to update DOI URL & metadata for EPrint $eprint_id, status updated to '$new_status' (DOI: $eprint_doi)" );
+        $repo->log( "Trigger event to update DOI URL & metadata for $class $dataobj_id, after EPrint $eprint_id status updated to '$new_status' (DOI: $datoabj_doi)" );
         return EPrints::Const::HTTP_OK;
     }
 
     # oddly, despite our previous checks, neither of the previous two conditions were true, so nothing happens...
     if( !defined $req )
     {
-        $repo->log( "No update applied to DOI: $eprint_doi (EPrint: $eprint_id)" );
+        $repo->log( "No update applied to DOI (EPrint $eprint_id, Status $new_status, $class: $dataobj_id, DOI: $dataobj_doi)" );
         return EPrints::Const::HTTP_NOT_FOUND;
     }
 
@@ -318,7 +338,7 @@ sub datacite_update_doi_state
     my $res = $ua->request( $req );
     if( $res->is_success )
     {
-        $repo->log( "DOI successfully updated following EPrint $eprint_id status update to '$new_status' (DOI: $eprint_doi)" );
+        $repo->log( "DOI successfully updated following EPrint $eprint_id status update to '$new_status' ($class: $dataobj_id, DOI: $dataobj_doi)" );
         return EPrints::Const::HTTP_OK;
     }
     else

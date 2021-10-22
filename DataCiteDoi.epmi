@@ -9,9 +9,9 @@
           <datasetid>document</datasetid>
           <filename>cfg.d/z_datacite_mapping.pl</filename>
           <mime_type>text/plain</mime_type>
-          <hash>49c347401404ac19ea67d673c80186dd</hash>
+          <hash>a30589e798ddfcb0ac82d08c95087cc6</hash>
           <hash_type>MD5</hash_type>
-          <filesize>32214</filesize>
+          <filesize>32266</filesize>
         </file>
         <file>
           <datasetid>document</datasetid>
@@ -65,33 +65,33 @@
           <datasetid>document</datasetid>
           <filename>epm/DataCiteDoi/cfg/cfg.d/z_datacitedoi.pl</filename>
           <mime_type>text/plain</mime_type>
-          <hash>78b9a8689515a039101b8582e245d9f5</hash>
+          <hash>905924dc428c60384c5e769c3bbb8ef2</hash>
           <hash_type>MD5</hash_type>
-          <filesize>11109</filesize>
+          <filesize>11809</filesize>
         </file>
         <file>
           <datasetid>document</datasetid>
           <filename>lang/en/phrases/coinDOI.xml</filename>
           <mime_type>application/xml</mime_type>
-          <hash>c0154c746d2c3ca34811509cb7a2114b</hash>
+          <hash>33a497087c7085fadb40596083811ffe</hash>
           <hash_type>MD5</hash_type>
-          <filesize>17991</filesize>
+          <filesize>19019</filesize>
         </file>
         <file>
           <datasetid>document</datasetid>
           <filename>plugins/EPrints/DataCite/Utils.pm</filename>
           <mime_type>text/plain</mime_type>
-          <hash>17f3588d7f2f77073174aa8a4ff49176</hash>
+          <hash>efb51198e4861c717e4b5b317f0b5f08</hash>
           <hash_type>MD5</hash_type>
-          <filesize>5627</filesize>
+          <filesize>7373</filesize>
         </file>
         <file>
           <datasetid>document</datasetid>
           <filename>plugins/EPrints/Plugin/Event/DataCiteEvent.pm</filename>
           <mime_type>text/plain</mime_type>
-          <hash>755fce2c0469ff93ae6f13e052c9ac6b</hash>
+          <hash>88554e5a04904684c516dc2190445dfb</hash>
           <hash_type>MD5</hash_type>
-          <filesize>16835</filesize>
+          <filesize>19872</filesize>
         </file>
         <file>
           <datasetid>document</datasetid>
@@ -105,9 +105,9 @@
           <datasetid>document</datasetid>
           <filename>plugins/EPrints/Plugin/Screen/EPrint/Staff/CoinDOI.pm</filename>
           <mime_type>text/plain</mime_type>
-          <hash>00017c641c5536b6b8590ef421cd2294</hash>
+          <hash>4df9449888085bb2a74234e4de1995c3</hash>
           <hash_type>MD5</hash_type>
-          <filesize>29048</filesize>
+          <filesize>41426</filesize>
         </file>
         <file>
           <datasetid>document</datasetid>
