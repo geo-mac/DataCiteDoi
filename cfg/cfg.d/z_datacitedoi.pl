@@ -63,11 +63,12 @@ $c->{datacitedoi}{schemaLocation} = $c->{datacitedoi}{xmlns}." http://schema.dat
 # Need to map eprint type (article, dataset etc) to DOI ResourceType
 # Controlled list https://schema.datacite.org/meta/kernel-4.4/doc/DataCite-MetadataKernel_v4.4.pdf
 # where v is the ResourceType and a is the resourceTypeGeneral
-#$c->{datacitedoi}{typemap}{book_section} = {v=>'BookSection',a=>'Text'};
 $c->{datacitedoi}{typemap}{article} = {v=>'Article',a=>'JournalArticle'};
+$c->{datacitedoi}{typemap}{book_section} = {v=>'Book Section',a=>'BookChapter'};
 $c->{datacitedoi}{typemap}{monograph} = {v=>'Monograph',a=>'Text'};
-$c->{datacitedoi}{typemap}{thesis} = {v=>'Thesis',a=>'Dissertation'};
+$c->{datacitedoi}{typemap}{conference_item} = {v=>'Conference Paper',a=>'ConferencePaper'};
 $c->{datacitedoi}{typemap}{book} = {v=>'Book',a=>'Book'};
+$c->{datacitedoi}{typemap}{thesis} = {v=>'Thesis',a=>'Dissertation'};
 $c->{datacitedoi}{typemap}{patent} = {v=>'Patent',a=>'Text'};
 $c->{datacitedoi}{typemap}{artefact} = {v=>'Artefact',a=>'PhysicalObject'};
 $c->{datacitedoi}{typemap}{exhibition} = {v=>'Exhibition',a=>'InteractiveResource'};
