@@ -89,9 +89,9 @@
           <datasetid>document</datasetid>
           <filename>plugins/EPrints/Plugin/Event/DataCiteEvent.pm</filename>
           <mime_type>text/plain</mime_type>
-          <hash>88554e5a04904684c516dc2190445dfb</hash>
+          <hash>ff75683038180404c08a5be35180ecb8</hash>
           <hash_type>MD5</hash_type>
-          <filesize>19872</filesize>
+          <filesize>19873</filesize>
         </file>
         <file>
           <datasetid>document</datasetid>

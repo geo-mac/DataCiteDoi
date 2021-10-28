@@ -110,7 +110,7 @@ sub datacite_doi
         $repo_url = $repository->get_conf( "datacitedoi", "override_url" );
         if( $repository->can_call( $class."_internal_landing_page" ) )
         {
-            $repo_url = $repository->call( $class."_internal_landing_page", $dataobj, $repository );
+            $repo_url .= $repository->call( $class."_internal_landing_page", $dataobj, $repository );
         }
         else
         {
