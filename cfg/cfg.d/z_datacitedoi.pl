@@ -58,7 +58,7 @@ $c->{datacitedoi}{publisher} = "EPrints Repo";
 $c->{datacitedoi}{xmlns} = "http://datacite.org/schema/kernel-4";
 # Try this instead:
 # $c->{datacitedoi}{schemaLocation} = $c->{datacitedoi}{xmlns}." ".$c->{datacitedoi}{xmlns}."/metadata.xsd";
-$c->{datacitedoi}{schemaLocation} = $c->{datacitedoi}{xmlns}." http://schema.datacite.org/meta/kernel-4/metadata.xsd";
+$c->{datacitedoi}{schemaLocation} = $c->{datacitedoi}{xmlns}." https://schema.datacite.org/meta/kernel-4.4/metadata.xsd";
 
 # Need to map eprint type (article, dataset etc) to DOI ResourceType
 # Controlled list https://schema.datacite.org/meta/kernel-4.4/doc/DataCite-MetadataKernel_v4.4.pdf

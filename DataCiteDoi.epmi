@@ -9,9 +9,9 @@
           <datasetid>document</datasetid>
           <filename>cfg.d/z_datacite_mapping.pl</filename>
           <mime_type>text/plain</mime_type>
-          <hash>a30589e798ddfcb0ac82d08c95087cc6</hash>
+          <hash>5ed90f042acaeeaf8544d50d88af40c1</hash>
           <hash_type>MD5</hash_type>
-          <filesize>32266</filesize>
+          <filesize>32262</filesize>
         </file>
         <file>
           <datasetid>document</datasetid>
@@ -65,9 +65,9 @@
           <datasetid>document</datasetid>
           <filename>epm/DataCiteDoi/cfg/cfg.d/z_datacitedoi.pl</filename>
           <mime_type>text/plain</mime_type>
-          <hash>a89ceab5440c297e5526c2e1a3b8f0d8</hash>
+          <hash>3a28de1b1042f1ca6e127b551ff36f4b</hash>
           <hash_type>MD5</hash_type>
-          <filesize>11908</filesize>
+          <filesize>11911</filesize>
         </file>
         <file>
           <datasetid>document</datasetid>

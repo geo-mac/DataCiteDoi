@@ -314,7 +314,7 @@ $c->{datacite_mapping_dates} = sub {
             my $date_type = $repo->get_conf( "datacitedoi", "datemap", $d->{date_type} );
             if( defined $d->{date} && defined $date_type && grep $date_type eq $_, @$dateType_opts )
             {
-                my $date= $xml->create_data_element( "dateType", $d->{date}, dateType => $date_type );
+                my $date= $xml->create_data_element( "date", $d->{date}, dateType => $date_type );
                 $dates->appendChild( $date );
                 $dates_added++;
             }
