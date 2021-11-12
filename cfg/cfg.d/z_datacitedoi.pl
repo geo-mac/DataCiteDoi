@@ -140,6 +140,13 @@ $c->{datacitedoi}{auto_coin} = 0;
 #If action_coin is set then a button will be displayed under action tab (for staff) to mint DOIs on an adhoc basis
 $c->{datacitedoi}{action_coin} = 1;
 
+# function to check if we're happy to auto-mint DOIs which are currently reserved
+$c->{datacitedoi}{reserve_to_findable} = sub {
+    my( $dataobj, $repo ) = @_;
+    
+    return 1; # returns true by default
+};
+
 # NB setting auto_coin renders action coin redundant as only published items can be registered
 
 ####### Formerly in cfg.d/datacite_core.pl #########

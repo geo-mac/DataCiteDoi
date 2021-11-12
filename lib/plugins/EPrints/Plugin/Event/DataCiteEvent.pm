@@ -267,7 +267,8 @@ sub datacite_update_doi_state
     }
 
     # if this is a draft doi and we're moving to live... let's mint a new DOI if we can
-    if( $datacite_doi->{data}->{attributes}->{state} eq "draft" && $new_status eq "archive" )
+    if( $datacite_doi->{data}->{attributes}->{state} eq "draft" && $new_status eq "archive" &&
+        $repo->can_call( "datacitedoi", "reserve_to_findable" ) && $repo->call( [ "datacitedoi", "reserve_to_findable" ], $dataobj, $repo ) )
     {
         # first validate the dataobj
         my $validate_fn = "validate_datacite_$class";

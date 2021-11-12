@@ -65,9 +65,9 @@
           <datasetid>document</datasetid>
           <filename>epm/DataCiteDoi/cfg/cfg.d/z_datacitedoi.pl</filename>
           <mime_type>text/plain</mime_type>
-          <hash>3a28de1b1042f1ca6e127b551ff36f4b</hash>
+          <hash>82d8a7bae7df5311849d3ab5ded2ce26</hash>
           <hash_type>MD5</hash_type>
-          <filesize>11911</filesize>
+          <filesize>12121</filesize>
         </file>
         <file>
           <datasetid>document</datasetid>
@@ -89,9 +89,9 @@
           <datasetid>document</datasetid>
           <filename>plugins/EPrints/Plugin/Event/DataCiteEvent.pm</filename>
           <mime_type>text/plain</mime_type>
-          <hash>ff75683038180404c08a5be35180ecb8</hash>
+          <hash>97affa6b9d79e53f45c5b8a9c3160e20</hash>
           <hash_type>MD5</hash_type>
-          <filesize>19873</filesize>
+          <filesize>20016</filesize>
         </file>
         <file>
           <datasetid>document</datasetid>
