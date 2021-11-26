@@ -73,9 +73,9 @@
           <datasetid>document</datasetid>
           <filename>lang/en/phrases/coinDOI.xml</filename>
           <mime_type>application/xml</mime_type>
-          <hash>33a497087c7085fadb40596083811ffe</hash>
+          <hash>08fa27b72462100243e01dcc93a41c8e</hash>
           <hash_type>MD5</hash_type>
-          <filesize>19019</filesize>
+          <filesize>19240</filesize>
         </file>
         <file>
           <datasetid>document</datasetid>
@@ -89,9 +89,9 @@
           <datasetid>document</datasetid>
           <filename>plugins/EPrints/Plugin/Event/DataCiteEvent.pm</filename>
           <mime_type>text/plain</mime_type>
-          <hash>97affa6b9d79e53f45c5b8a9c3160e20</hash>
+          <hash>ae34f5a040a526aa020f7cfa538d01a0</hash>
           <hash_type>MD5</hash_type>
-          <filesize>20016</filesize>
+          <filesize>19896</filesize>
         </file>
         <file>
           <datasetid>document</datasetid>

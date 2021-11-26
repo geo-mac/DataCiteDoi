@@ -207,4 +207,8 @@
 
     <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:data:title">DataCite XML</epp:phrase>
 
+    <!-- DataCite Dataset -->
+    <epp:phrase id="datasetname_datacite">DataCite</epp:phrase>
+    <epp:phrase id="datasethelp_datacite">Stores DataCite details for records, used to construct tombstone pages</epp:phrase>
+
 </epp:phrases>

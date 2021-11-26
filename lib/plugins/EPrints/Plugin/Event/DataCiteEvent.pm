@@ -50,7 +50,7 @@ sub datacite_doi
     }
 
     my $shoulddoi = $repository->get_conf( "datacitedoi", "eprintstatus",  $eprint->value( "eprint_status" ) );
-    # Check Doi Status
+    # Check oi Status
     if( !$shoulddoi )
     {
         $repository->log("Attempt to coin DOI for item that is not in the required area (see \$c->{datacitedoi}->{eprintstatus})");
@@ -370,12 +370,8 @@ sub datacite_remove_doi
         return EPrints::Const::HTTP_NOT_FOUND;
     }
 
-
-    # we've set the DOI as registered, not findable, so now update the URL to the tombstone page
-    apply_tombstone_url( $repo, $dataset_id, $dataobj_id ); 
-
     # if this is a draft or registered doi, there's no point worrying about it
-    if( $datacite_doi->{data}->{attributes}->{state} eq "draft" || $datacite_doi->{data}->{attributes}->{state} eq "registered" )
+    if( $datacite_doi->{data}->{attributes}->{state} eq "draft" )
     {
         $repo->log( "DOI currently in '" . $datacite_doi->{data}->{attributes}->{state} . "' state. No need to apply any changes following dataobj removal. ($dataset_id: $dataobj_id, DOI: $doi)" );
         return EPrints::Const::HTTP_NOT_FOUND;
@@ -386,6 +382,10 @@ sub datacite_remove_doi
     my $datacite_url = URI->new( $repo->config( 'datacitedoi', 'mdsurl' ) . "/metadata/$doi" );
     my $ua = LWP::UserAgent->new();
     my $req;
+
+    # update the DOI with a tombstone url
+    apply_tombstone_url( $repo, $dataset_id, $dataobj_id ); 
+
 
     # if it's a findable doi in datacite, set as registered
     if( $datacite_doi->{data}->{attributes}->{state} eq "findable" )
