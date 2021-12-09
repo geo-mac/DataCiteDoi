@@ -443,13 +443,13 @@ sub update_repository_record
     # set the citation
     if( $class eq "eprint" )
     {
-        my $citation = $dataobj->render_citation( "datacite_tombstone" );
+        my $citation = EPrints::XML::to_string( $dataobj->render_citation( "datacite_tombstone" ) );
         $dc->set_value( "citation", $citation );
     }
     elsif( $class eq "document" )
     {
         my $eprint = $dataobj->get_eprint;
-        my $citation = $dataobj->render_citation( "datacite_tombstone", eprint => $eprint );
+        my $citation = EPrints::XML::to_string( $dataobj->render_citation( "datacite_tombstone", eprint => $eprint ) );
         $dc->set_value( "citation", $citation );
     }
     $dc->commit;
