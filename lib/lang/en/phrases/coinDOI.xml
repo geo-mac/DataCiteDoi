@@ -5,7 +5,7 @@
     <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:action:coindoi:description">This will add a coin-DOI event to the event queue (i.e. Will not happen immediately)</epp:phrase>
     <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:action:coindoi:title">Coin DOI</epp:phrase>
     <epp:phrase id="Plugin/Screen/EPrint/Staff/CoinDOI:coiningdoi">This item will have a DOI coined when the indexer gets around to it.</epp:phrase>
-    <epp:phrase id="embargoed_until">.Embargoed until: <epc:pin name="embargo_date"/> </epp:phrase>
+    <epp:phrase id="embargoed_until">. Embargoed until: <epc:pin name="embargo_date"/> </epp:phrase>
 
 
 
