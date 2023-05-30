@@ -44,11 +44,14 @@ sub output_dataobj
     # AH my $thisdoi = $opts{doi}; always returns undefined, even when DOI exists
     # Ideally coining should NOT happen in this script but opts{doi} should have it
     # but is always blank
-    my $thisdoi = $dataobj->get_value("id_number");
+    my $thisdoi = $dataobj->get_value($repo->get_conf( "datacitedoi", "eprintdoifield"));
     #RM coin a DOI if either
             # - not come via event or
             # - no doi arg passed in via cmd_line
     # ie when someone exports DataCiteXML from the Action tab
+	
+	
+	
     if(!defined $thisdoi){
             #nick the coining sub from event plugin
             my $event = $repo->plugin("Event::DataCiteEvent");
