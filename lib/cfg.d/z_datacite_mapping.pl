@@ -316,81 +316,82 @@ $c->{datacite_mapping_geographic_cover} = sub {
 };
 
 #################################################################
+# @g3om4c Temporarily disabled by @g3om4c owing to low grade project/grant data writing from Pure - inadequate for DataCite PID registration.
 # fundingReferences this is derived from the eprint.funders and eprint.projects
 # Possibly also eprint.grant (recollect) or a compound eprint.project (rioxx2)
 # https://schema.datacite.org/meta/kernel-4.0/metadata.xsd#fundingReferences
 
-$c->{datacite_mapping_funders} = sub {
-    my($xml, $dataobj, $repo) = @_;
+# $c->{datacite_mapping_funders} = sub {
+    # my($xml, $dataobj, $repo) = @_;
 
-    ##############################
-    # If at all possible we do this:
-    #
-    # funders => funderName [mandatory]
-    # projects => awardTitle
-    # grant -> awardNumber
-    # funder_id => funderIdentifier
+    # ##############################
+    # # If at all possible we do this:
+    # #
+    # # funders => funderName [mandatory]
+    # # projects => awardTitle
+    # # grant -> awardNumber
+    # # funder_id => funderIdentifier
 
-    #Funders and projects are default eprints field, both are multiple
-    my $funders = undef;
-    my $projects = undef;
+    # #Funders and projects are default eprints field, both are multiple
+    # my $funders = undef;
+    # my $projects = undef;
 
-    my $fundingReferences = undef;
-    if ($dataobj->exists_and_set("funders")) {
-        $funders = $dataobj->get_value("funders");
-        my $i=0;
-        $fundingReferences = $xml->create_element("fundingReferences");
-        foreach my $funderName(@$funders) {
-            $fundingReferences->appendChild(my $fundingReference = $xml->create_element("fundingReference"));
-            $fundingReference->appendChild($xml->create_data_element("funderName", $funderName));
-            if($dataobj->exists_and_set("projects")){
-	        $projects = $dataobj->get_value("projects");
-                if(ref($projects) =~ /ARRAY/) {
-                    my $project = $projects->[scalar(@$projects)-1];
-                    if(defined $projects->[$i]){
-                        $project = $projects->[$i];
-                    }
-                    $fundingReference->appendChild($xml->create_data_element("awardTitle", $project));
-                }else{
-                    $fundingReference->appendChild($xml->create_data_element("awardTitle", $projects));
-                }
-            }
+    # my $fundingReferences = undef;
+    # if ($dataobj->exists_and_set("funders")) {
+        # $funders = $dataobj->get_value("funders");
+        # my $i=0;
+        # $fundingReferences = $xml->create_element("fundingReferences");
+        # foreach my $funderName(@$funders) {
+            # $fundingReferences->appendChild(my $fundingReference = $xml->create_element("fundingReference"));
+            # $fundingReference->appendChild($xml->create_data_element("funderName", $funderName));
+            # if($dataobj->exists_and_set("projects")){
+	        # $projects = $dataobj->get_value("projects");
+                # if(ref($projects) =~ /ARRAY/) {
+                    # my $project = $projects->[scalar(@$projects)-1];
+                    # if(defined $projects->[$i]){
+                        # $project = $projects->[$i];
+                    # }
+                    # $fundingReference->appendChild($xml->create_data_element("awardTitle", $project));
+                # }else{
+                    # $fundingReference->appendChild($xml->create_data_element("awardTitle", $projects));
+                # }
+            # }
 
-            #grants is added by recollect if present
-            if($dataobj->exists_and_set("grant")) {
-                my $grants = $dataobj->get_value("grant");
-                #Just in case it has been configured as multiple
-                if(ref($grants) =~ /ARRAY/) {
-                    my $grant = $grants->[scalar(@$grants)-1];
-                    if(defined $grants->[$i]){
-                        $grant = $grants->[$i];
-                    }
-                    $fundingReference->appendChild($xml->create_data_element("awardNumber", $grant));
-                }else{
-                    $fundingReference->appendChild($xml->create_data_element("awardNumber", $grants));
-                }
-            }
-        }
-    } 
+            # #grants is added by recollect if present
+            # if($dataobj->exists_and_set("grant")) {
+                # my $grants = $dataobj->get_value("grant");
+                # #Just in case it has been configured as multiple
+                # if(ref($grants) =~ /ARRAY/) {
+                    # my $grant = $grants->[scalar(@$grants)-1];
+                    # if(defined $grants->[$i]){
+                        # $grant = $grants->[$i];
+                    # }
+                    # $fundingReference->appendChild($xml->create_data_element("awardNumber", $grant));
+                # }else{
+                    # $fundingReference->appendChild($xml->create_data_element("awardNumber", $grants));
+                # }
+            # }
+        # }
+    # } 
 
-    #If we have the funder data in the ioxx2 format. 
-    #This will be preferred if present (as should have been derived from the thers anyway
-    #TODO keep grant if present?
-    if ($dataobj->exists_and_set("rioxx2_project_input")) {
-        my $i=0;
-        $fundingReferences = $xml->create_element("fundingReferences");
-        foreach my $project(@{$dataobj->value("rioxx2_project_input")}) {
-            $fundingReferences->appendChild(my $fundingReference = $xml->create_element("fundingReference"));
-            $fundingReference->appendChild($xml->create_data_element("funderName", $project->{funder_name}));
-            $fundingReference->appendChild($xml->create_data_element("awardTitle", $project->{project}));
-            $fundingReference->appendChild($xml->create_data_element("funderIdentifier", $project->{funder_id}, funderIdentifierType=>"Crossref Funder"));
-        }
-    } 
+    # #If we have the funder data in the ioxx2 format. 
+    # #This will be preferred if present (as should have been derived from the thers anyway
+    # #TODO keep grant if present?
+    # if ($dataobj->exists_and_set("rioxx2_project_input")) {
+        # my $i=0;
+        # $fundingReferences = $xml->create_element("fundingReferences");
+        # foreach my $project(@{$dataobj->value("rioxx2_project_input")}) {
+            # $fundingReferences->appendChild(my $fundingReference = $xml->create_element("fundingReference"));
+            # $fundingReference->appendChild($xml->create_data_element("funderName", $project->{funder_name}));
+            # $fundingReference->appendChild($xml->create_data_element("awardTitle", $project->{project}));
+            # $fundingReference->appendChild($xml->create_data_element("funderId", $project->{funder_id}));
+        # }
+    # } 
 
-    return $fundingReferences;
-};
+    # return $fundingReferences;
+# };
 
-# TODO sort this one out too
+# # TODO sort this one out too
 
 $c->{datacite_mapping_rights_from_docs} = sub {
     my ( $xml, $dataobj, $repo ) = @_;
@@ -399,60 +400,81 @@ $c->{datacite_mapping_rights_from_docs} = sub {
     my $previous = {};
     my $attached_licence = undef;
 
-    my $seen = {};
-
     for my $doc ( $dataobj->get_all_documents() ) {
 
-    my $license = $doc->get_value("license");
-    my $content = $doc->get_value("content");
-	my ($license_uri,$license_phrase);
-    	# This doc is the license (for docs that have license == attached
-	if ((defined $content) && ($content eq "licence")){
-        	$license_uri = $doc->uri;
-		$license_phrase = $repo->phrase("licenses_typename_attached");
-	}elsif(defined $license){
-	        $license_uri = $repo->phrase("licenses_uri_$license");
-        	$license_phrase = $repo->phrase("licenses_typename_$license");
-	}else{ #do not attempt to add rights tag if no license is set for a file
-        next;
-    }
-	#no dupes
-	next if $seen->{$license_uri};
+        my $license = $doc->get_value("license");
+        my $content = $doc->get_value("content");
 
-        if($doc->exists_and_set("date_embargo")){
-		$license_phrase .= $repo->phrase("embargoed_until", embargo_date=>$doc->value("date_embargo"));
+	    # This doc is the license (for docs that have license == attached
+	    if ((defined $content) && ($content eq "licence")){
+		    $attached_licence = $doc->url;
+		    next;
+	    }
+
+        if(EPrints::Utils::is_set($license) && $license ne "attached") {
+
+                    my $licenseuri = $repo->phrase("licenses_uri_$license");
+                    my $licensephrase = $repo->phrase("licenses_typename_$license");
+
+                    if($doc->exists_and_set("date_embargo")){
+                            $licensephrase .= $repo->phrase("embargoed_until", embargo_date=>$doc->value("date_embargo"));
+                    }
+
+                    $rightsList->appendChild($xml->create_data_element("rights", $licensephrase, rightsURI => $licenseuri));
+
         }
-	$seen->{$license_uri} = 1;
-        $rightsList->appendChild($xml->create_data_element("rights", $license_phrase, rightsURI => $license_uri));
     }
+    
+    #second pass now that we know what the attached license doc ur is
+    for my $doc ( $dataobj->get_all_documents() ) {
+        my $license = $doc->get_value("license");
+    	if(EPrints::Utils::is_set($license) && $license eq "attached") {
+        	$rightsList->appendChild($xml->create_data_element("rights", $repo->phrase("licenses_typename_attached"), rightsURI => $attached_licence));
 
+	    }
+    }
 
     return $rightsList;
 };
 
+# $c->{datacite_mapping_repo_link} = sub {
+
+    # my($xml, $entry, $dataobj) = @_;
+
+    # my $relatedIdentifiers = undef;
+    # #default codein plugin (for reference)
+        # my $theurls = $dataobj->get_value( "id_number" );
+        # my $relatedIdentifiers = $xml->create_element( "relatedIdentifiers" );
+        # foreach my $theurl ( @$theurls ) {
+            # my $linkk = $theurl->{link};
+            # if (!$linkk eq ''){
+                # $relatedIdentifiers->appendChild(  $xml->create_data_element( "relatedIdentifier", $linkk, relatedIdentifierType=>"URL", relationType=>"IsReferencedBy" ) );
+            # }
+        # }
 
 
+    # return $relatedIdentifiers;
+
+# };
 
 
+# @g3om4c -- Treatment of relatedIdentifiers revised to reflect use of id_number by Strathprints to 
+# accommodate DOI of VoR coming from Pure. VoR DOIs modelled in relatedIdentifier for
+# PID graph purposes and relational discovery.
 
-$c->{datacite_mapping_repo_link} = sub {
+$c->{datacite_mapping_relatedIdentifiers} = sub {
 
-    my($xml, $entry, $dataobj) = @_;
+    my( $xml, $dataobj, $repo ) = @_;
 
     my $relatedIdentifiers = undef;
-    #default codein plugin (for reference)
-    #    my $theurls = $dataobj->get_value( "repo_link" );
-    #    my $relatedIdentifiers = $xml->create_element( "relatedIdentifiers" );
-    #    foreach my $theurl ( @$theurls ) {
-    #        my $linkk = $theurl->{link};
-    #        if (!$linkk eq ''){
-    #            $relatedIdentifiers->appendChild(  $xml->create_data_element( "relatedIdentifier", $linkk, relatedIdentifierType=>"URL", relationType=>"IsReferencedBy" ) );
-    #        }
-    #    }
 
-
+    if($dataobj->exists_and_set("id_number"))
+    {   
+        $relatedIdentifiers = $xml->create_element( "relatedIdentifiers" );
+        $relatedIdentifiers->appendChild( $xml->create_data_element( "relatedIdentifier", $dataobj->render_value("id_number"), relatedIdentifierType => "DOI", relationType => "IsVersionOf" ) );   
+    }
+    
     return $relatedIdentifiers;
-
 };
 
 
@@ -463,6 +485,25 @@ $c->{validate_datacite} = sub
 	my $xml = $repository->xml();
 
 	my @problems = ();
+
+	# If this host is not production it should probably use a test endpoint.
+	# To prevent this check change the test_host_regex regex not to match hostname
+	# or ensure test_host_regex is undefined (as is the default)
+
+	my $test_regex = $repository->get_conf("datacitedoi", "test_host_regex");
+	if (defined $test_regex){
+		use Sys::Hostname;
+		my $doi_prefix = $repository->get_conf("datacitedoi", "prefix");
+
+		# Does this host match the regex? Is it using the test DOI prefix?
+		if ((hostname =~ $test_regex) && ("10.5072" != $doi_prefix)) {
+			push @problems, $repository->html_phrase(
+				"datacite_validate:doi_prefix_mismatch",
+				match_regexp=> $xml->create_text_node("$test_regex"),
+				configured_doi_prefix=> $xml->create_text_node("$doi_prefix"),
+			);
+		}
+	}
 
     #NEED CREATORS
 	if( !$eprint->is_set( "creators" ) && 
